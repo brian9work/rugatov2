@@ -1,0 +1,63 @@
+-- MySQL dump 10.13  Distrib 8.0.46, for macos15 (arm64)
+--
+-- Host: mydatabase.cj8qkoiwq43t.us-east-2.rds.amazonaws.com    Database: rugato
+-- ------------------------------------------------------
+-- Server version	8.0.44
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!50503 SET NAMES utf8 */;
+/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
+/*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+SET @MYSQLDUMP_TEMP_LOG_BIN = @@SESSION.SQL_LOG_BIN;
+SET @@SESSION.SQL_LOG_BIN= 0;
+
+--
+-- GTID state at the beginning of the backup 
+--
+
+SET @@GLOBAL.GTID_PURGED=/*!80000 '+'*/ '';
+
+--
+-- Table structure for table `cat_ingredients`
+--
+
+DROP TABLE IF EXISTS `cat_ingredients`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cat_ingredients` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `last_updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `id_UNIQUE` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=59 DEFAULT CHARSET=utf8mb3;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `cat_ingredients`
+--
+
+LOCK TABLES `cat_ingredients` WRITE;
+/*!40000 ALTER TABLE `cat_ingredients` DISABLE KEYS */;
+INSERT INTO `cat_ingredients` VALUES (1,'papaya','2025-10-31 05:06:12','2025-10-31 05:06:12'),(2,'granola','2025-10-31 05:06:12','2025-10-31 05:06:12'),(3,'piña','2025-10-31 05:06:12','2025-10-31 05:06:12'),(4,'coco','2025-10-31 05:06:12','2025-10-31 05:06:12'),(5,'nuez','2025-10-31 05:06:12','2025-10-31 05:06:12'),(6,'fresa','2025-10-31 05:06:12','2025-10-31 05:06:12'),(7,'platano','2025-10-31 05:06:12','2025-10-31 05:06:12'),(8,'cacahuate','2025-10-31 05:06:12','2025-10-31 05:06:12'),(9,'chocomilk','2025-10-31 05:06:12','2025-10-31 05:06:12'),(10,'plátano','2025-10-31 05:06:12','2025-10-31 05:06:12'),(11,'manzana','2025-10-31 05:06:12','2025-10-31 05:06:12'),(12,'amaranto','2025-10-31 05:06:12','2025-10-31 05:06:12'),(13,'plátano','2025-10-31 05:06:12','2025-10-31 05:06:12'),(14,'pasas','2025-10-31 05:06:12','2025-10-31 05:06:12'),(15,'Mayonesa','2025-10-31 05:06:12','2025-10-31 05:06:12'),(16,'lechuga','2025-10-31 05:06:12','2025-10-31 05:06:12'),(17,'jamón','2025-10-31 05:06:12','2025-10-31 05:06:12'),(18,'queso amarillo','2025-10-31 05:06:12','2025-10-31 05:06:12'),(19,'queso panela','2025-10-31 05:06:12','2025-10-31 05:06:12'),(20,'jitomate','2025-10-31 05:06:12','2025-10-31 05:06:12'),(21,'atún','2025-10-31 05:06:12','2025-10-31 05:06:12'),(22,'pepino','2025-10-31 05:06:12','2025-10-31 05:06:12'),(23,'pechuga a la plancha','2025-10-31 05:06:12','2025-10-31 05:06:12'),(24,'fruta','2025-10-31 05:06:12','2025-10-31 05:06:12'),(25,'miel','2025-10-31 05:06:12','2025-10-31 05:06:12'),(26,'leche','2025-10-31 05:06:12','2025-10-31 05:06:12'),(27,'cereal','2025-10-31 05:06:12','2025-10-31 05:06:12'),(28,'espinaca','2025-10-31 05:06:12','2025-10-31 05:06:12'),(29,'manzana','2025-10-31 05:06:12','2025-10-31 05:06:12'),(30,'zanahoria','2025-10-31 05:06:12','2025-10-31 05:06:12'),(31,'arándano','2025-10-31 05:06:12','2025-10-31 05:06:12'),(32,'cacahuate','2025-10-31 05:06:12','2025-10-31 05:06:12'),(33,'jitomate','2025-10-31 05:06:12','2025-10-31 05:06:12'),(34,'piña','2025-10-31 05:06:12','2025-10-31 05:06:12'),(35,'guayaba','2025-10-31 05:06:12','2025-10-31 05:06:12'),(36,'limón','2025-10-31 05:06:12','2025-10-31 05:06:12'),(37,'pingüica','2025-10-31 05:06:12','2025-10-31 05:06:12'),(38,'pepino','2025-10-31 05:06:12','2025-10-31 05:06:12'),(39,'limón','2025-10-31 05:06:12','2025-10-31 05:06:12'),(40,'chia','2025-10-31 05:06:12','2025-10-31 05:06:12'),(41,'lechuga','2025-10-31 05:06:12','2025-10-31 05:06:12'),(42,'apio','2025-10-31 05:06:12','2025-10-31 05:06:12'),(43,'limón','2025-10-31 05:06:12','2025-10-31 05:06:12'),(44,'linaza','2025-10-31 05:06:12','2025-10-31 05:06:12'),(45,'manzana','2025-10-31 05:06:12','2025-10-31 05:06:12'),(46,'coco','2025-10-31 05:06:12','2025-10-31 05:06:12'),(47,'avena','2025-10-31 05:06:12','2025-10-31 05:06:12'),(48,'canela','2025-10-31 05:06:12','2025-10-31 05:06:12'),(49,'leche evaporada','2025-10-31 05:06:12','2025-10-31 05:06:12'),(50,'queso panela','2025-10-31 05:06:12','2025-10-31 05:06:12'),(51,'quesillo','2025-10-31 05:06:12','2025-10-31 05:06:12'),(52,'aguacate','2025-10-31 05:06:12','2025-10-31 05:06:12'),(53,'cebolla morada','2025-10-31 05:06:12','2025-10-31 05:06:12'),(54,'espinaca','2025-10-31 05:06:12','2025-10-31 05:06:12'),(55,'germen de alfalfa','2025-10-31 05:06:12','2025-10-31 05:06:12'),(56,'betabel','2025-10-31 05:06:12','2025-10-31 05:06:12'),(57,'pechuga','2025-10-31 05:06:12','2025-10-31 05:06:12'),(58,'queso mancheg','2025-10-31 05:06:12','2025-10-31 05:06:12');
+/*!40000 ALTER TABLE `cat_ingredients` ENABLE KEYS */;
+UNLOCK TABLES;
+SET @@SESSION.SQL_LOG_BIN = @MYSQLDUMP_TEMP_LOG_BIN;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-04-24 13:13:54
