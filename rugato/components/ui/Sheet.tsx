@@ -64,14 +64,6 @@ export default function Sheet({ open, onClose, title, children, footer }: Props)
           </div>
         )}
       </div>
-
-      <style jsx global>{`
-        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-        @keyframes sheetUp { from { transform: translateY(100%) } to { transform: translateY(0) } }
-        @media (prefers-reduced-motion: reduce) {
-          .animate-\\[sheetUp_\\.35s_cubic-bezier\\(0\\.32\\,0\\.72\\,0\\,1\\)\\] { animation: fadeIn .1s ease-out }
-        }
-      `}</style>
     </div>
   )
 }

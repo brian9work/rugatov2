@@ -7,8 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.4"
   }
@@ -26,6 +24,7 @@ export type Database = {
           pricing_mode: Database["public"]["Enums"]["pricing_mode"]
           short_name: string | null
           sort_order: number
+          station_id: number | null
           updated_at: string
         }
         Insert: {
@@ -39,6 +38,7 @@ export type Database = {
           pricing_mode?: Database["public"]["Enums"]["pricing_mode"]
           short_name?: string | null
           sort_order?: number
+          station_id?: number | null
           updated_at?: string
         }
         Update: {
@@ -52,9 +52,69 @@ export type Database = {
           pricing_mode?: Database["public"]["Enums"]["pricing_mode"]
           short_name?: string | null
           sort_order?: number
+          station_id?: number | null
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "categories_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expense_categories: {
+        Row: { id: number; is_active: boolean; name: string; sort_order: number }
+        Insert: { id?: never; is_active?: boolean; name: string; sort_order?: number }
+        Update: { id?: never; is_active?: boolean; name?: string; sort_order?: number }
         Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category_id: number
+          created_at: string
+          id: number
+          reason: string | null
+          updated_at: string
+          user_id: number | null
+        }
+        Insert: {
+          amount: number
+          category_id: number
+          created_at?: string
+          id?: never
+          reason?: string | null
+          updated_at?: string
+          user_id?: number | null
+        }
+        Update: {
+          amount?: number
+          category_id?: number
+          created_at?: string
+          id?: never
+          reason?: string | null
+          updated_at?: string
+          user_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "expense_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       extras: {
         Row: {
@@ -193,6 +253,256 @@ export type Database = {
           },
         ]
       }
+      order_item_extras: {
+        Row: {
+          extra_id: number
+          name: string
+          order_item_id: number
+          price: number
+        }
+        Insert: {
+          extra_id: number
+          name: string
+          order_item_id: number
+          price: number
+        }
+        Update: {
+          extra_id?: number
+          name?: string
+          order_item_id?: number
+          price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_item_extras_extra_id_fkey"
+            columns: ["extra_id"]
+            isOneToOne: false
+            referencedRelation: "extras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_item_extras_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_item_options: {
+        Row: {
+          extra_price: number
+          group_name: string
+          name: string
+          option_id: number
+          order_item_id: number
+        }
+        Insert: {
+          extra_price?: number
+          group_name: string
+          name: string
+          option_id: number
+          order_item_id: number
+        }
+        Update: {
+          extra_price?: number
+          group_name?: string
+          name?: string
+          option_id?: number
+          order_item_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_item_options_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "option_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_item_options_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_item_removed_ingredients: {
+        Row: {
+          ingredient_id: number
+          name: string
+          order_item_id: number
+        }
+        Insert: {
+          ingredient_id: number
+          name: string
+          order_item_id: number
+        }
+        Update: {
+          ingredient_id?: number
+          name?: string
+          order_item_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_item_removed_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_item_removed_ingredients_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          details: Json
+          extra_charge: number
+          id: number
+          line_total: number
+          notes: string | null
+          order_id: number
+          product_id: number
+          product_name: string
+          quantity: number
+          size: Database["public"]["Enums"]["product_size"]
+          station_id: number | null
+          station_name: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          extra_charge?: number
+          id?: never
+          line_total: number
+          notes?: string | null
+          order_id: number
+          product_id: number
+          product_name: string
+          quantity?: number
+          size?: Database["public"]["Enums"]["product_size"]
+          station_id?: number | null
+          station_name?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          extra_charge?: number
+          id?: never
+          line_total?: number
+          notes?: string | null
+          order_id?: number
+          product_id?: number
+          product_name?: string
+          quantity?: number
+          size?: Database["public"]["Enums"]["product_size"]
+          station_id?: number | null
+          station_name?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "stations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          created_at: string
+          created_by: number | null
+          customer_name: string | null
+          delivered_at: string | null
+          delivered_by: number | null
+          folio: number
+          id: number
+          notes: string | null
+          payment: Database["public"]["Enums"]["payment_method"] | null
+          service: Database["public"]["Enums"]["service_type"]
+          status: Database["public"]["Enums"]["order_status"]
+          table_number: number | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: number | null
+          customer_name?: string | null
+          delivered_at?: string | null
+          delivered_by?: number | null
+          folio?: never
+          id?: never
+          notes?: string | null
+          payment?: Database["public"]["Enums"]["payment_method"] | null
+          service?: Database["public"]["Enums"]["service_type"]
+          status?: Database["public"]["Enums"]["order_status"]
+          table_number?: number | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: number | null
+          customer_name?: string | null
+          delivered_at?: string | null
+          delivered_by?: number | null
+          folio?: never
+          id?: never
+          notes?: string | null
+          payment?: Database["public"]["Enums"]["payment_method"] | null
+          service?: Database["public"]["Enums"]["service_type"]
+          status?: Database["public"]["Enums"]["order_status"]
+          table_number?: number | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_delivered_by_fkey"
+            columns: ["delivered_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_prices: {
         Row: {
           id: number
@@ -230,6 +540,7 @@ export type Database = {
           id: number
           is_active: boolean
           name: string
+          station_id: number | null
           updated_at: string
         }
         Insert: {
@@ -239,6 +550,7 @@ export type Database = {
           id?: never
           is_active?: boolean
           name: string
+          station_id?: number | null
           updated_at?: string
         }
         Update: {
@@ -248,6 +560,7 @@ export type Database = {
           id?: never
           is_active?: boolean
           name?: string
+          station_id?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -258,7 +571,38 @@ export type Database = {
             referencedRelation: "categories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_station_id_fkey"
+            columns: ["station_id"]
+            isOneToOne: false
+            referencedRelation: "stations"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      stations: {
+        Row: {
+          id: number
+          is_active: boolean
+          name: string
+          role_hint: Database["public"]["Enums"]["user_role"] | null
+          sort_order: number
+        }
+        Insert: {
+          id?: never
+          is_active?: boolean
+          name: string
+          role_hint?: Database["public"]["Enums"]["user_role"] | null
+          sort_order?: number
+        }
+        Update: {
+          id?: never
+          is_active?: boolean
+          name?: string
+          role_hint?: Database["public"]["Enums"]["user_role"] | null
+          sort_order?: number
+        }
+        Relationships: []
       }
       users: {
         Row: {
@@ -304,13 +648,36 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_order: { Args: { payload: Json }; Returns: number }
       current_user_id: { Args: never; Returns: number }
       current_user_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      deliver_order: {
+        Args: {
+          p_delivered_by: number
+          p_order_id: number
+          p_payment: Database["public"]["Enums"]["payment_method"]
+        }
+        Returns: undefined
+      }
+      get_report: { Args: { p_start: string; p_end: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      is_staff: { Args: never; Returns: boolean }
+      recompute_order_status: {
+        Args: { p_order_id: number }
+        Returns: undefined
+      }
+      resolve_station: { Args: { p_product_id: number }; Returns: number }
       save_product: { Args: { payload: Json }; Returns: number }
+      set_item_status: {
+        Args: {
+          p_item_id: number
+          p_status: Database["public"]["Enums"]["order_status"]
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       cash_direction: "entrada" | "salida"

@@ -1,0 +1,130 @@
+import { type Database } from '@/lib/database.types'
+import { type ProductFull, type ProductSize } from '@/lib/menu'
+
+export type Order      = Database['public']['Tables']['orders']['Row']
+export type OrderItem  = Database['public']['Tables']['order_items']['Row']
+export type OrderStatus  = Database['public']['Enums']['order_status']
+export type ServiceType  = Database['public']['Enums']['service_type']
+export type PaymentMethod = Database['public']['Enums']['payment_method']
+
+export type OrderWithItems = Order & { items: OrderItem[] }
+
+export const SERVICE_LABELS: Record<ServiceType, string> = {
+  llevar: 'Para llevar',
+  aqui:   'Para comer aquí',
+}
+
+export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
+  efectivo:      'Efectivo',
+  tarjeta:       'Tarjeta',
+  transferencia: 'Transferencia',
+}
+
+// ── Carrito (estado en cliente antes de enviar) ────────
+export interface CartLine {
+  key: string
+  product: ProductFull
+  size: ProductSize
+  quantity: number
+  removedIngredientIds: number[]
+  extraIds: number[]
+  optionIds: number[]
+  notes: string
+  extraCharge: number
+}
+
+export function unitPriceOf(product: ProductFull, size: ProductSize): number {
+  const row = product.prices.find(p => p.size === size)
+  return row ? Number(row.price) : 0
+}
+
+export function lineTotal(line: CartLine): number {
+  const base = unitPriceOf(line.product, line.size)
+  const extras = line.product.extras
+    .filter(e => line.extraIds.includes(e.id))
+    .reduce((a, e) => a + Number(e.price), 0)
+  const options = line.product.option_groups
+    .flatMap(g => g.items)
+    .filter(o => line.optionIds.includes(o.id))
+    .reduce((a, o) => a + Number(o.extra_price), 0)
+  return line.quantity * (base + extras + options) + (line.extraCharge || 0)
+}
+
+export function cartTotal(lines: CartLine[]): number {
+  return lines.reduce((a, l) => a + lineTotal(l), 0)
+}
+
+// ── Payload que consume create_order ───────────────────
+export interface CreateOrderPayload {
+  created_by: number | null
+  service: ServiceType
+  table_number: number | null
+  customer_name: string | null
+  notes: string | null
+  items: {
+    product_id: number
+    size: ProductSize
+    quantity: number
+    extra_charge: number
+    notes: string | null
+    removed_ingredients: string[]
+    extras: string[]
+    options: string[]
+  }[]
+}
+
+export function cartToPayload(
+  lines: CartLine[],
+  meta: { created_by: number | null; service: ServiceType; table_number: number | null; customer_name: string | null; notes: string | null },
+): CreateOrderPayload {
+  return {
+    ...meta,
+    items: lines.map(l => ({
+      product_id: l.product.id,
+      size: l.size,
+      quantity: l.quantity,
+      extra_charge: l.extraCharge || 0,
+      notes: l.notes.trim() || null,
+      removed_ingredients: l.removedIngredientIds.map(String),
+      extras: l.extraIds.map(String),
+      options: l.optionIds.map(String),
+    })),
+  }
+}
+
+// ── Cliente HTTP (writes → route handlers con service_role) ──
+async function json<T>(res: Response): Promise<T> {
+  const body = await res.json()
+  if (!res.ok) throw new Error(body?.error ?? 'Error de red')
+  return body as T
+}
+
+export const ordersApi = {
+  create: (payload: CreateOrderPayload) =>
+    fetch('/api/orders', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).then(json<{ id: number }>),
+
+  setItemStatus: (itemId: number, status: OrderStatus) =>
+    fetch(`/api/orders/items/${itemId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ status }),
+    }).then(json<{ success: true }>),
+
+  cancel: (orderId: number) =>
+    fetch(`/api/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'cancel' }),
+    }).then(json<{ success: true }>),
+
+  deliver: (orderId: number, deliveredBy: number | null, payment: PaymentMethod) =>
+    fetch(`/api/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'deliver', delivered_by: deliveredBy, payment }),
+    }).then(json<{ success: true }>),
+}
