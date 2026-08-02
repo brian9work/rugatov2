@@ -1,0 +1,49 @@
+* Validar la sesion por la fecha y el estatus del user
+* cambiar el estatus de los pedidos
+historial de pedidos en admin
+* mostrar las ordenes por mesero
+
+
+
+
+
+
+notas, boton de para llevar o comer aqui,
+
+para armar un sandwitch o baguet lo de quitar el componente de ingredientes
+
+corregir los textos
+
+en baguet los extras de preteina individualizarlos.
+
+agregar un rol de bebidas
+
+en cocina solo se deben de mostar las ensaladas, bocadillos, baguetes, en saladas especiales y sandwitches especiales y bebidas calientes
+
+estatus
+cliente presencial para llevar
+cliente llamada para llevar
+cliente mensaje para llevar
+cliente llmada para comer aqui
+cliente mensaje para comer aqui
+cliente presencial para comer aqui
+cliente para llevar
+
+
+
+en el carrito que aparezca si para llevar o comer aqui
+
+
+
+
+
+
+agregar picante en las categorias de bocadillos, baguete especial, snadwitches especiales, al gusto 
+
+
+
+corregir el total en el carrito
+
+agregar categoria de precios y en configuracion y en otros extras  "Extra precio|"
+
+agregar nuevos items de pan integral
