@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import { DEV_BYPASS_AUTH } from '@/lib/devConfig'
 
@@ -60,9 +61,16 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-bg-primary">
       <div className="w-full max-w-sm bg-bg-secondary rounded-2xl p-8 shadow-xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-white tracking-tight">Rugato</h1>
-          <p className="text-gray-400 text-sm mt-1">Inicia sesión para continuar</p>
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Image
+            src="/logo.webp"
+            alt="Rugato — Jugos y Licuados"
+            width={240}
+            height={78}
+            priority
+            className="h-auto w-56 max-w-full"
+          />
+          <p className="text-gray-400 text-sm mt-3">Inicia sesión para continuar</p>
         </div>
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">

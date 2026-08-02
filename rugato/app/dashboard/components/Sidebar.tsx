@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
@@ -68,6 +69,18 @@ export default function Sidebar({ role, userName, onLogout }: SidebarProps) {
       >
         {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
       </button>
+
+      {/* Logo */}
+      <div className={`flex items-center justify-center border-b border-gray-700 ${collapsed ? 'px-2 py-4' : 'px-4 py-5'}`}>
+        <Image
+          src={collapsed ? '/logo-sm.webp' : '/logo.webp'}
+          alt="Rugato"
+          width={collapsed ? 40 : 180}
+          height={collapsed ? 40 : 58}
+          priority
+          className={collapsed ? 'h-9 w-9 object-contain' : 'h-auto w-full max-w-[170px] object-contain'}
+        />
+      </div>
 
       {/* Header */}
       <div className={`flex items-center gap-3 px-4 py-5 border-b border-gray-700 ${collapsed ? 'justify-center' : ''}`}>

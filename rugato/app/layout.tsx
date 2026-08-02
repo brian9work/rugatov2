@@ -4,7 +4,8 @@ import { UserProvider } from '@/lib/UserContext'
 
 export const metadata: Metadata = {
   title: 'Rugato',
-  description: 'Sistema de gestión de restaurante',
+  description: 'Sistema de gestión — Jugos y Licuados Rugato',
+  icons: { icon: '/logo-sm.webp', apple: '/logo-sm.webp' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
