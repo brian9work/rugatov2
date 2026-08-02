@@ -8,13 +8,13 @@
 
 | # | Módulo | Doc | Migración | Estado |
 |---|--------|-----|-----------|--------|
-| 1 | Inicio de sesión | `01-login.md` | `0001_base.sql` | Pendiente de detallar |
+| 1 | Inicio de sesión | `01-login.md` | `0001_base.sql` ✅ aplicada | Login bypasseado en dev (`lib/devConfig.ts`); UI real pendiente |
 | 2 | Empleados | `02-empleados.md` | — (usa `0001`) | Pendiente |
-| 3 | Menú | `03-menu.md` | `0002_menu.sql` | Pendiente |
-| 4 | Órdenes | `04-ordenes.md` | `0003_orders.sql` | Pendiente |
-| 5 | Cocina | `05-cocina.md` | — (usa `0003`) | Pendiente |
-| 6 | Gastos y caja | `06-gastos.md` | `0004_finances.sql` | Pendiente |
-| 7 | Reportes | `07-reportes.md` | `0005_reports.sql` | Pendiente |
+| 3 | Menú | `03-menu.md` | `0002_menu.sql` ✅ aplicada | **Implementado** (CRUD admin) |
+| 4 | Órdenes | `04-ordenes.md` | `0003_orders.sql` ✅ aplicada | **Implementado**: alta de orden + tablero pendientes en `/dashboard/ordenes` (Realtime + campana) |
+| 5 | Cocina | `05-cocina.md` | — (usa `0003`) | Parcial: estado por línea ya en el tablero; falta vista dedicada por estación |
+| 6 | Gastos y caja | `06-gastos.md` | `0005_finances_expenses.sql` ✅ aplicada | **Gastos implementado** en `/dashboard/gastos` (admin); caja/ingresos pendientes |
+| 7 | Reportes + Panel | `07-reportes.md` | `0006_report_function.sql` ✅ aplicada | **Implementado**: `/dashboard/reportes` + panel general en `/dashboard` |
 | 8 | Configuración | `08-configuracion.md` | — | Pendiente |
 
 El orden importa: Órdenes necesita Menú, que necesita Empleados, que necesita
