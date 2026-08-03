@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import Sheet from '@/components/ui/Sheet'
 import Button from '@/components/ui/Button'
 import Segmented from '@/components/ui/Segmented'
 import ProductConfig from '@/components/orders/ProductConfig'
+import ProductPicker from '@/components/orders/ProductPicker'
 import { useUser } from '@/lib/UserContext'
 import { type Category, type ProductFull, menuApi, SIZE_LABELS } from '@/lib/menu'
 import {
@@ -48,9 +49,6 @@ export default function NewOrderSheet({ open, onClose, onCreated }: Props) {
     if (!open) { setCart([]); setService('llevar'); setTable(''); setCustomer(''); setOrderNotes('') }
   }, [open])
 
-  const grouped = categories
-    .map(cat => ({ cat, items: products.filter(p => p.category_id === cat.id) }))
-    .filter(g => g.items.length > 0)
 
   async function submit() {
     setError('')
@@ -136,27 +134,10 @@ export default function NewOrderSheet({ open, onClose, onCreated }: Props) {
             <span className={sectionLabel}>Agregar productos</span>
             {loading ? (
               <p className="text-[15px] text-[var(--color-text-secondary)]">Cargando menú…</p>
-            ) : grouped.length === 0 ? (
+            ) : products.length === 0 ? (
               <p className="text-[15px] text-[var(--color-text-secondary)]">No hay productos activos. Crea productos en Menú.</p>
             ) : (
-              grouped.map(({ cat, items }) => (
-                <div key={cat.id} className="mb-1">
-                  <div className="mb-1 flex items-center gap-2 px-1">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: cat.color }} />
-                    <span className="text-[13px] font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">{cat.name}</span>
-                  </div>
-                  <div className="overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-bg-primary)]">
-                    {items.map((p, i) => (
-                      <button key={p.id} onClick={() => setConfiguring(p)}
-                              className={`flex w-full items-center gap-3 px-3 py-3 text-left hover:bg-[var(--color-surface-2)] ${i > 0 ? 'border-t border-[var(--color-border)]' : ''}`}>
-                        <span className="flex-1 text-[15px] text-white">{p.name}</span>
-                        <span className="tabular text-[13px] text-[var(--color-text-secondary)]">{priceHint(p)}</span>
-                        <Plus size={18} style={{ color: 'var(--color-accent)' }} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))
+              <ProductPicker categories={categories} products={products} onPick={setConfiguring} />
             )}
           </div>
         </div>
@@ -176,12 +157,6 @@ export default function NewOrderSheet({ open, onClose, onCreated }: Props) {
 const field =
   'w-full rounded-[var(--radius-md)] bg-[var(--color-bg-primary)] px-3 py-2.5 text-[17px] text-white placeholder:text-[var(--color-text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--color-accent)]'
 const sectionLabel = 'text-[13px] font-medium uppercase tracking-wide text-[var(--color-text-secondary)]'
-
-function priceHint(p: ProductFull): string {
-  if (p.prices.length === 0) return ''
-  const vals = p.prices.map(x => Number(x.price)).sort((a, b) => a - b)
-  return vals[0] === vals[vals.length - 1] ? `$${vals[0]}` : `$${vals[0]}–${vals[vals.length - 1]}`
-}
 
 function describe(l: CartLine): string {
   const parts: string[] = []
