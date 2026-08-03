@@ -30,5 +30,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ success: true })
   }
 
+  if (body.action === 'update_data') {
+    const { error } = await supabase.rpc('update_order_data', {
+      p_order_id: orderId,
+      p_service: body.service,
+      p_table: body.table_number ?? null,
+      p_customer: body.customer_name ?? null,
+      p_notes: body.notes ?? null,
+      p_user: body.user_id ?? null,
+      p_user_name: body.user_name ?? null,
+    })
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    return NextResponse.json({ success: true })
+  }
+
   return NextResponse.json({ error: 'Acción no válida' }, { status: 400 })
 }

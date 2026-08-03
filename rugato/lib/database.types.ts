@@ -253,6 +253,51 @@ export type Database = {
           },
         ]
       }
+      order_audit: {
+        Row: {
+          action: string
+          created_at: string
+          detail: Json
+          id: number
+          order_id: number
+          user_id: number | null
+          user_name: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          detail?: Json
+          id?: never
+          order_id: number
+          user_id?: number | null
+          user_name?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          detail?: Json
+          id?: never
+          order_id?: number
+          user_id?: number | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_audit_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_audit_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_item_extras: {
         Row: {
           extra_id: number
@@ -441,9 +486,11 @@ export type Database = {
         Row: {
           created_at: string
           created_by: number | null
+          created_by_name: string | null
           customer_name: string | null
           delivered_at: string | null
           delivered_by: number | null
+          delivered_by_name: string | null
           folio: number
           id: number
           notes: string | null
@@ -457,9 +504,11 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: number | null
+          created_by_name?: string | null
           customer_name?: string | null
           delivered_at?: string | null
           delivered_by?: number | null
+          delivered_by_name?: string | null
           folio?: never
           id?: never
           notes?: string | null
@@ -473,9 +522,11 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: number | null
+          created_by_name?: string | null
           customer_name?: string | null
           delivered_at?: string | null
           delivered_by?: number | null
+          delivered_by_name?: string | null
           folio?: never
           id?: never
           notes?: string | null
@@ -648,6 +699,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_order_item: {
+        Args: {
+          p_item: Json
+          p_order_id: number
+          p_user: number
+          p_user_name: string
+        }
+        Returns: number
+      }
+      assert_open: { Args: { p_order: number }; Returns: undefined }
       create_order: { Args: { payload: Json }; Returns: number }
       current_user_id: { Args: never; Returns: number }
       current_user_role: {
@@ -662,11 +723,26 @@ export type Database = {
         }
         Returns: undefined
       }
-      get_report: { Args: { p_start: string; p_end: string }; Returns: Json }
+      get_report: { Args: { p_end: string; p_start: string }; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       is_staff: { Args: never; Returns: boolean }
+      log_order: {
+        Args: {
+          p_action: string
+          p_detail: Json
+          p_name: string
+          p_order: number
+          p_user: number
+        }
+        Returns: undefined
+      }
       recompute_order_status: {
         Args: { p_order_id: number }
+        Returns: undefined
+      }
+      recompute_total: { Args: { p_order: number }; Returns: undefined }
+      remove_order_item: {
+        Args: { p_item_id: number; p_user: number; p_user_name: string }
         Returns: undefined
       }
       resolve_station: { Args: { p_product_id: number }; Returns: number }
@@ -675,6 +751,27 @@ export type Database = {
         Args: {
           p_item_id: number
           p_status: Database["public"]["Enums"]["order_status"]
+        }
+        Returns: undefined
+      }
+      update_order_data: {
+        Args: {
+          p_customer: string
+          p_notes: string
+          p_order_id: number
+          p_service: Database["public"]["Enums"]["service_type"]
+          p_table: number
+          p_user: number
+          p_user_name: string
+        }
+        Returns: undefined
+      }
+      update_order_item_qty: {
+        Args: {
+          p_item_id: number
+          p_qty: number
+          p_user: number
+          p_user_name: string
         }
         Returns: undefined
       }

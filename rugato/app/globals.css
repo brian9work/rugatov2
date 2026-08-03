@@ -58,3 +58,21 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .rg-sheet-up { animation: rg-fade-in .1s ease-out }
 }
+
+/* Pulso: indica que un elemento es tappable y cambiará de estado */
+@keyframes rg-pulse {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.94); }
+}
+.rg-pulse { animation: rg-pulse 1.6s ease-in-out infinite; }
+
+/* Destello: confirma que el estado acaba de cambiar */
+@keyframes rg-flash {
+  0%   { background-color: color-mix(in srgb, var(--color-accent) 30%, transparent); }
+  100% { background-color: transparent; }
+}
+.rg-flash { animation: rg-flash 0.7s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rg-pulse, .rg-flash { animation: none; }
+}

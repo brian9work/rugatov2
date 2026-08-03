@@ -3,11 +3,20 @@ import { type ProductFull, type ProductSize } from '@/lib/menu'
 
 export type Order      = Database['public']['Tables']['orders']['Row']
 export type OrderItem  = Database['public']['Tables']['order_items']['Row']
+export type OrderAudit = Database['public']['Tables']['order_audit']['Row']
 export type OrderStatus  = Database['public']['Enums']['order_status']
 export type ServiceType  = Database['public']['Enums']['service_type']
 export type PaymentMethod = Database['public']['Enums']['payment_method']
 
 export type OrderWithItems = Order & { items: OrderItem[] }
+
+/** ¿La orden todavía se puede editar? */
+export function isEditable(status: OrderStatus): boolean {
+  return status !== 'entregado' && status !== 'cancelado'
+}
+
+/** Autor de una acción (quién la hace, para el registro). */
+export interface Actor { id: number | null; name: string | null }
 
 export const SERVICE_LABELS: Record<ServiceType, string> = {
   llevar: 'Para llevar',
@@ -73,6 +82,20 @@ export interface CreateOrderPayload {
   }[]
 }
 
+/** Una línea de carrito → item para add_order_item / create_order. */
+export function lineToItem(l: CartLine) {
+  return {
+    product_id: l.product.id,
+    size: l.size,
+    quantity: l.quantity,
+    extra_charge: l.extraCharge || 0,
+    notes: l.notes.trim() || null,
+    removed_ingredients: l.removedIngredientIds.map(String),
+    extras: l.extraIds.map(String),
+    options: l.optionIds.map(String),
+  }
+}
+
 export function cartToPayload(
   lines: CartLine[],
   meta: { created_by: number | null; service: ServiceType; table_number: number | null; customer_name: string | null; notes: string | null },
@@ -126,5 +149,38 @@ export const ordersApi = {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action: 'deliver', delivered_by: deliveredBy, payment }),
+    }).then(json<{ success: true }>),
+
+  // ── Edición (registra en la auditoría) ──
+  addItem: (orderId: number, line: CartLine, by: Actor) =>
+    fetch(`/api/orders/${orderId}/items`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ item: lineToItem(line), user_id: by.id, user_name: by.name }),
+    }).then(json<{ id: number }>),
+
+  removeItem: (itemId: number, by: Actor) =>
+    fetch(`/api/orders/items/${itemId}`, {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ user_id: by.id, user_name: by.name }),
+    }).then(json<{ success: true }>),
+
+  setItemQty: (itemId: number, qty: number, by: Actor) =>
+    fetch(`/api/orders/items/${itemId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ qty, user_id: by.id, user_name: by.name }),
+    }).then(json<{ success: true }>),
+
+  updateData: (
+    orderId: number,
+    data: { service: ServiceType; table_number: number | null; customer_name: string | null; notes: string | null },
+    by: Actor,
+  ) =>
+    fetch(`/api/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'update_data', ...data, user_id: by.id, user_name: by.name }),
     }).then(json<{ success: true }>),
 }
