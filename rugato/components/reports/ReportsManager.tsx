@@ -1,19 +1,31 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { BarChart3 } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import Segmented from '@/components/ui/Segmented'
+import StatusBadge from '@/components/ui/StatusBadge'
+import OrderDetail from '@/components/orders/OrderDetail'
+import { useUser } from '@/lib/UserContext'
+import { type OrderWithItems, SERVICE_LABELS } from '@/lib/orders'
 import {
-  type Report, type RangeKey, RANGE_LABELS, getReport,
+  type Report, type RangeKey, type Employee,
+  RANGE_LABELS, getReport, listEmployees, ordersInRange,
 } from '@/lib/reports'
 
 const money = (n: number) => `$${Number(n).toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 
 export default function ReportsManager() {
+  const { user } = useUser()
   const [range, setRange] = useState<RangeKey>('7d')
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  // historial de órdenes + filtro por empleado
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [employeeId, setEmployeeId] = useState<number | 0>(0)
+  const [orders, setOrders] = useState<OrderWithItems[]>([])
+  const [selected, setSelected] = useState<OrderWithItems | null>(null)
 
   const load = useCallback(async () => {
     try { setLoading(true); setError(''); setReport(await getReport(range)) }
@@ -21,7 +33,17 @@ export default function ReportsManager() {
     finally { setLoading(false) }
   }, [range])
 
+  const loadOrders = useCallback(async () => {
+    try {
+      const rows = await ordersInRange(range, employeeId || null)
+      setOrders(rows)
+      setSelected(prev => prev ? rows.find(o => o.id === prev.id) ?? null : null)
+    } catch { /* se muestra el error del reporte */ }
+  }, [range, employeeId])
+
   useEffect(() => { load() }, [load])
+  useEffect(() => { loadOrders() }, [loadOrders])
+  useEffect(() => { listEmployees().then(setEmployees).catch(() => {}) }, [])
 
   const t = report?.totals
   const maxDay = Math.max(1, ...(report?.by_day.map(d => Math.max(d.ventas, d.gastos)) ?? [1]))
@@ -124,6 +146,55 @@ export default function ReportsManager() {
           </Section>
         </div>
       )}
+
+      {/* Historial de órdenes + filtro por empleado */}
+      <section className="mt-6">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-[13px] font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
+            Órdenes del periodo
+          </h2>
+          <select value={employeeId} onChange={e => setEmployeeId(Number(e.target.value))}
+                  className="rounded-[var(--radius-md)] bg-[var(--color-surface-2)] px-3 py-2 text-[15px] text-white outline-none">
+            <option value={0}>Todos los empleados</option>
+            {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+          </select>
+        </div>
+
+        {orders.length === 0 ? (
+          <Empty />
+        ) : (
+          <div className="overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-surface)]">
+            {orders.map((o, i) => (
+              <button key={o.id} onClick={() => setSelected(o)}
+                      className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-surface-2)] ${i > 0 ? 'border-t border-[var(--color-border)]' : ''}`}>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[15px] font-bold text-white">#{o.folio}</span>
+                    <StatusBadge status={o.status} />
+                  </div>
+                  <p className="mt-0.5 truncate text-[13px] text-[var(--color-text-secondary)]">
+                    {fmtDateTime(o.created_at)} · {SERVICE_LABELS[o.service]}
+                    {o.created_by_name && ` · Tomó: ${o.created_by_name}`}
+                    {o.delivered_by_name && ` · Cobró: ${o.delivered_by_name}`}
+                  </p>
+                </div>
+                <span className="tabular text-[15px] font-semibold text-white">{money(o.total)}</span>
+                <ChevronRight size={18} style={{ color: 'var(--color-text-tertiary)' }} />
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {selected && (
+        <OrderDetail
+          order={selected}
+          actor={{ id: user?.id ?? null, name: user?.name ?? null }}
+          canDeliver={false}
+          onClose={() => setSelected(null)}
+          onChanged={loadOrders}
+        />
+      )}
     </div>
   )
 }
@@ -161,4 +232,8 @@ function Empty() {
 
 function fmtDay(iso: string): string {
   return new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'short', day: '2-digit', month: 'short' })
+}
+
+function fmtDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
