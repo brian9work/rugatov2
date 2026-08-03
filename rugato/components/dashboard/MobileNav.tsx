@@ -42,13 +42,12 @@ export default function MobileNav({ role, onLogout }: { role: UserRole; onLogout
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         {primary.map(it => <Tab key={it.href} item={it} active={isActive(it.href)} />)}
-        {more.length > 0 && (
-          <button onClick={() => setMoreOpen(true)}
-                  className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[var(--color-text-tertiary)]">
-            <MoreHorizontal size={22} />
-            <span className="text-[11px] font-medium">Más</span>
-          </button>
-        )}
+        {/* "Más" siempre visible: contiene overflow + cerrar sesión */}
+        <button onClick={() => setMoreOpen(true)}
+                className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[var(--color-text-tertiary)]">
+          <MoreHorizontal size={22} />
+          <span className="text-[11px] font-medium">Más</span>
+        </button>
       </nav>
 
       <Sheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Más">
