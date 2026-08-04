@@ -100,6 +100,7 @@ export default function ReportsManager() {
           actor={{ id: user?.id ?? null, name: user?.name ?? null }}
           canDeliver={false}
           canEdit={false}
+          canEditPrice
           onClose={() => setSelected(null)}
           onChanged={refreshAll}
         />

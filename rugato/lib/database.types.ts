@@ -784,6 +784,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_order_total: {
+        Args: { p_order: number; p_total: number; p_user: number; p_user_name: string }
+        Returns: undefined
+      }
       update_order_data: {
         Args: {
           p_customer: string

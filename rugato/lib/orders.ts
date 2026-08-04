@@ -183,4 +183,12 @@ export const ordersApi = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action: 'update_data', ...data, user_id: by.id, user_name: by.name }),
     }).then(json<{ success: true }>),
+
+  // Corrige el total manualmente (queda en el historial).
+  setTotal: (orderId: number, total: number, by: Actor) =>
+    fetch(`/api/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'set_total', total, user_id: by.id, user_name: by.name }),
+    }).then(json<{ success: true }>),
 }

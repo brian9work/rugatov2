@@ -16,11 +16,12 @@ import {
 } from '@/lib/orders'
 import { STATUS_LABELS, STATUS_HEX } from '@/lib/roles'
 
-export default function OrderDetail({ order, actor, canDeliver, canEdit = true, onClose, onChanged }: {
+export default function OrderDetail({ order, actor, canDeliver, canEdit = true, canEditPrice = false, onClose, onChanged }: {
   order: OrderWithItems
   actor: Actor
   canDeliver: boolean
   canEdit?: boolean
+  canEditPrice?: boolean
   onClose: () => void
   onChanged: () => void
 }) {
@@ -61,6 +62,16 @@ export default function OrderDetail({ order, actor, canDeliver, canEdit = true, 
     await run(() => ordersApi.setItemStatus(itemId, target))
     setFlashId(itemId)
     setTimeout(() => setFlashId(null), 700)
+  }
+
+  const [editingPrice, setEditingPrice] = useState(false)
+  const [priceInput, setPriceInput] = useState('')
+
+  async function savePrice() {
+    const v = Number(priceInput)
+    if (Number.isNaN(v) || v < 0) { setError('Total inválido'); return }
+    await run(() => ordersApi.setTotal(order.id, v, actor))
+    setEditingPrice(false)
   }
 
   const next: Record<string, OrderStatus | undefined> = { pendiente: 'preparando', preparando: 'listo' }
@@ -207,9 +218,28 @@ export default function OrderDetail({ order, actor, canDeliver, canEdit = true, 
           )}
 
           {/* Total */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <span className="text-[15px] text-[var(--color-text-secondary)]">Total</span>
-            <span className="tabular text-[20px] font-bold" style={{ color: 'var(--color-accent)' }}>${Number(order.total).toFixed(0)}</span>
+            {editingPrice ? (
+              <div className="flex items-center gap-2">
+                <div className="relative w-28">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]">$</span>
+                  <input autoFocus inputMode="decimal" value={priceInput} onChange={e => setPriceInput(e.target.value)}
+                         className="tabular w-full rounded-[var(--radius-md)] bg-[var(--color-bg-primary)] py-2 pl-7 pr-2 text-[17px] text-white outline-none focus:ring-2 focus:ring-[var(--color-accent)]" />
+                </div>
+                <Button variant="tinted" disabled={busy} onClick={savePrice}>Guardar</Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="tabular text-[20px] font-bold" style={{ color: 'var(--color-accent)' }}>${Number(order.total).toFixed(0)}</span>
+                {canEditPrice && (
+                  <button onClick={() => { setPriceInput(String(order.total)); setEditingPrice(true) }}
+                          className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-surface-2)] text-[var(--color-text-secondary)] hover:text-white">
+                    <Pencil size={14} />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Historial */}
@@ -262,6 +292,7 @@ function auditText(a: OrderAudit): string {
     case 'quitar':   return `Quitó ${d.producto}`
     case 'cantidad': return `Cambió ${d.producto} de ${d.de} a ${d.a}`
     case 'datos':    return 'Editó los datos'
+    case 'precio':   return `Cambió el total de $${d.de} a $${d.a}`
     case 'entregar': return `Entregó y cobró (${d.payment})`
     case 'cancelar': return 'Canceló la orden'
     default:         return a.action
