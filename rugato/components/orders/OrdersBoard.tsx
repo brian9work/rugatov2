@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Plus, ClipboardList, RotateCw } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import StatusBadge from '@/components/ui/StatusBadge'
@@ -21,8 +21,34 @@ export default function OrdersBoard() {
   const [error, setError] = useState('')
   const [newOpen, setNewOpen] = useState(false)
   const [selected, setSelected] = useState<OrderWithItems | null>(null)
+  const [stations, setStations] = useState<{ id: number; role_hint: string | null }[]>([])
   const knownIds = useRef<Set<number>>(new Set())
   const audioRef = useRef<AudioContext | null>(null)
+
+  const role = user?.type
+  // Meseros y admin gestionan (crear/editar/entregar); cocina/barra solo avanzan estados.
+  const canManage = role === 'admin' || role === 'user'
+
+  useEffect(() => {
+    supabase.from('stations').select('id, role_hint').then(({ data }) => setStations(data ?? []))
+  }, [])
+
+  // Estación del rol (cocina/barra ven solo la suya; admin/mesero ven todo).
+  const myStationId = useMemo(() => {
+    if (role === 'cocina' || role === 'barra') return stations.find(s => s.role_hint === role)?.id ?? null
+    return null
+  }, [role, stations])
+
+  const forStation = useCallback((o: OrderWithItems): OrderWithItems => {
+    if (myStationId == null) return o
+    return { ...o, items: o.items.filter(it => (it.station_id ?? 1) === myStationId) }
+  }, [myStationId])
+
+  // Órdenes visibles según el rol.
+  const visible = useMemo(() => {
+    if (myStationId == null) return orders
+    return orders.map(forStation).filter(o => o.items.length > 0)
+  }, [orders, myStationId, forStation])
 
   const load = useCallback(async () => {
     setError('')
@@ -82,7 +108,7 @@ export default function OrdersBoard() {
                   className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-2)] hover:text-white">
             <RotateCw size={18} />
           </button>
-          <Button onClick={() => setNewOpen(true)}><Plus size={20} /> Nueva</Button>
+          {canManage && <Button onClick={() => setNewOpen(true)}><Plus size={20} /> Nueva</Button>}
         </div>
       </div>
 
@@ -90,16 +116,16 @@ export default function OrdersBoard() {
 
       {loading ? (
         <p className="text-[15px] text-[var(--color-text-secondary)]">Cargando…</p>
-      ) : orders.length === 0 ? (
+      ) : visible.length === 0 ? (
         <div className="flex flex-col items-center gap-3 rounded-[var(--radius-lg)] bg-[var(--color-surface)] px-6 py-16 text-center">
           <ClipboardList size={48} className="text-[var(--color-text-tertiary)]" />
           <p className="text-[17px] font-semibold text-white">Sin órdenes pendientes</p>
           <p className="text-[15px] text-[var(--color-text-secondary)]">Las órdenes nuevas aparecerán aquí en tiempo real.</p>
-          <Button onClick={() => setNewOpen(true)}><Plus size={20} /> Nueva orden</Button>
+          {canManage && <Button onClick={() => setNewOpen(true)}><Plus size={20} /> Nueva orden</Button>}
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
-          {orders.map(o => (
+          {visible.map(o => (
             <button key={o.id} onClick={() => setSelected(o)}
                     className="flex flex-col gap-2 rounded-[var(--radius-lg)] bg-[var(--color-surface)] p-4 text-left hover:brightness-110">
               <div className="flex items-center justify-between">
@@ -133,9 +159,10 @@ export default function OrdersBoard() {
 
       {selected && (
         <OrderDetail
-          order={selected}
+          order={forStation(selected)}
           actor={{ id: user?.id ?? null, name: user?.name ?? null }}
-          canDeliver={user?.type === 'admin' || user?.type === 'user'}
+          canDeliver={canManage}
+          canEdit={canManage}
           onClose={() => setSelected(null)}
           onChanged={load}
         />

@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'cocina' | 'user'
+export type UserRole = 'admin' | 'cocina' | 'user' | 'barra'
 export type OrderStatus = 'pendiente' | 'preparando' | 'listo' | 'entregado' | 'cancelado'
 
 // ── Roles ──────────────────────────────────────────────
@@ -6,30 +6,35 @@ export type OrderStatus = 'pendiente' | 'preparando' | 'listo' | 'entregado' | '
 export const ROLE_LABELS: Record<UserRole, string> = {
   admin:  'Administrador',
   cocina: 'Cocina',
-  user:   'Usuario',
+  barra:  'Barra',
+  user:   'Mesero',
 }
 
 export const ROLE_TEXT: Record<UserRole, string> = {
   admin:  'text-role-admin',
   cocina: 'text-role-cocina',
+  barra:  'text-role-barra',
   user:   'text-role-user',
 }
 
 export const ROLE_BG: Record<UserRole, string> = {
   admin:  'bg-role-admin',
   cocina: 'bg-role-cocina',
+  barra:  'bg-role-barra',
   user:   'bg-role-user',
 }
 
 export const ROLE_BORDER: Record<UserRole, string> = {
   admin:  'border-role-admin',
   cocina: 'border-role-cocina',
+  barra:  'border-role-barra',
   user:   'border-role-user',
 }
 
 export const ROLE_HEX: Record<UserRole, string> = {
   admin:  '#25f575',
   cocina: '#c58d00',
+  barra:  '#06b6d4',
   user:   '#3b82f6',
 }
 

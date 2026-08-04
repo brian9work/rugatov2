@@ -16,10 +16,11 @@ import {
 } from '@/lib/orders'
 import { STATUS_LABELS, STATUS_HEX } from '@/lib/roles'
 
-export default function OrderDetail({ order, actor, canDeliver, onClose, onChanged }: {
+export default function OrderDetail({ order, actor, canDeliver, canEdit = true, onClose, onChanged }: {
   order: OrderWithItems
   actor: Actor
   canDeliver: boolean
+  canEdit?: boolean
   onClose: () => void
   onChanged: () => void
 }) {
@@ -30,7 +31,7 @@ export default function OrderDetail({ order, actor, canDeliver, onClose, onChang
   const [addOpen, setAddOpen] = useState(false)
   const [audit, setAudit] = useState<OrderAudit[]>([])
 
-  const editable = isEditable(order.status)
+  const editable = canEdit && isEditable(order.status)
 
   // datos editables
   const [service, setService] = useState<ServiceType>(order.service)

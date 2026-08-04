@@ -24,6 +24,7 @@ const CFG:    Item = { label: 'Configuración', href: '/dashboard/configuracion'
 const NAV: Record<UserRole, { primary: Item[]; more: Item[] }> = {
   admin:  { primary: [HOME, ORD, MENU, REP], more: [GASTOS, EMP, CFG] },
   cocina: { primary: [HOME, ORD],            more: [] },
+  barra:  { primary: [HOME, ORD],            more: [] },
   user:   { primary: [HOME, ORD],            more: [] },
 }
 

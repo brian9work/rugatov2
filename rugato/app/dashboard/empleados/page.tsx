@@ -247,7 +247,8 @@ export default function EmpleadosPage() {
                 >
                   <option value="admin">Administrador</option>
                   <option value="cocina">Cocina</option>
-                  <option value="user">Usuario</option>
+                  <option value="barra">Barra</option>
+                  <option value="user">Mesero</option>
                 </select>
               </div>
 

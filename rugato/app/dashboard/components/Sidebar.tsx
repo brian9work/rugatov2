@@ -38,6 +38,10 @@ const navByRole: Record<UserRole, NavItem[]> = {
     { label: 'Panel de Control', href: '/dashboard',         icon: <LayoutDashboard size={20} /> },
     { label: 'Órdenes',          href: '/dashboard/ordenes', icon: <ClipboardList size={20} /> },
   ],
+  barra: [
+    { label: 'Panel de Control', href: '/dashboard',         icon: <LayoutDashboard size={20} /> },
+    { label: 'Órdenes',          href: '/dashboard/ordenes', icon: <ClipboardList size={20} /> },
+  ],
   user: [
     { label: 'Panel de Control', href: '/dashboard',         icon: <LayoutDashboard size={20} /> },
     { label: 'Órdenes',          href: '/dashboard/ordenes', icon: <ClipboardList size={20} /> },
