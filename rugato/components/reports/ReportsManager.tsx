@@ -14,8 +14,10 @@ import {
 
 const money = (n: number) => `$${Number(n).toLocaleString('es-MX', { maximumFractionDigits: 0 })}`
 
-type Tab = 'ventas' | 'empleados' | 'gastos'
-const TAB_LABELS: Record<Tab, string> = { ventas: 'Ventas', empleados: 'Empleados', gastos: 'Gastos e ingresos' }
+type Tab = 'ventas' | 'listas' | 'empleados' | 'gastos'
+const TAB_LABELS: Record<Tab, string> = {
+  ventas: 'Ventas', listas: 'Órdenes listas', empleados: 'Empleados', gastos: 'Gastos e ingresos',
+}
 
 export default function ReportsManager() {
   const { user } = useUser()
@@ -28,6 +30,7 @@ export default function ReportsManager() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [employeeId, setEmployeeId] = useState<number | 0>(0)
   const [orders, setOrders] = useState<OrderWithItems[]>([])
+  const [ready, setReady] = useState<OrderWithItems[]>([])
   const [selected, setSelected] = useState<OrderWithItems | null>(null)
 
   const load = useCallback(async () => {
@@ -44,8 +47,16 @@ export default function ReportsManager() {
     } catch { /* el error del reporte ya se muestra */ }
   }, [range, employeeId])
 
+  const loadReady = useCallback(async () => {
+    try { setReady(await ordersInRange(range, null, ['listo', 'entregado'])) }
+    catch { /* noop */ }
+  }, [range])
+
+  const refreshAll = useCallback(() => { loadOrders(); loadReady() }, [loadOrders, loadReady])
+
   useEffect(() => { load() }, [load])
   useEffect(() => { loadOrders() }, [loadOrders])
+  useEffect(() => { loadReady() }, [loadReady])
   useEffect(() => { listEmployees().then(setEmployees).catch(() => {}) }, [])
 
   return (
@@ -74,6 +85,8 @@ export default function ReportsManager() {
         <VentasTab report={report} />
       ) : tab === 'gastos' ? (
         <GastosTab report={report} />
+      ) : tab === 'listas' ? (
+        <ListasTab orders={ready} onSelect={setSelected} />
       ) : (
         <EmpleadosTab
           employees={employees} employeeId={employeeId} setEmployeeId={setEmployeeId}
@@ -86,8 +99,9 @@ export default function ReportsManager() {
           order={selected}
           actor={{ id: user?.id ?? null, name: user?.name ?? null }}
           canDeliver={false}
+          canEdit={false}
           onClose={() => setSelected(null)}
-          onChanged={loadOrders}
+          onChanged={refreshAll}
         />
       )}
     </div>
@@ -249,34 +263,58 @@ function EmpleadosTab({ employees, employeeId, setEmployeeId, orders, onSelect }
 
       {/* Lista de órdenes */}
       <Section title="Órdenes">
-        {orders.length === 0 ? <Empty /> : (
-          <div className="overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-surface)]">
-            {orders.map((o, i) => (
-              <button key={o.id} onClick={() => onSelect(o)}
-                      className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-surface-2)] ${i > 0 ? 'border-t border-[var(--color-border)]' : ''}`}>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[15px] font-bold text-white">#{o.folio}</span>
-                    <StatusBadge status={o.status} />
-                  </div>
-                  <p className="mt-0.5 truncate text-[13px] text-[var(--color-text-secondary)]">
-                    {fmtDateTime(o.created_at)} · {SERVICE_LABELS[o.service]}
-                    {o.created_by_name && ` · Tomó: ${o.created_by_name}`}
-                    {o.delivered_by_name && ` · Cobró: ${o.delivered_by_name}`}
-                  </p>
-                </div>
-                <span className="tabular text-[15px] font-semibold text-white">{money(o.total)}</span>
-                <ChevronRight size={18} style={{ color: 'var(--color-text-tertiary)' }} />
-              </button>
-            ))}
-          </div>
-        )}
+        {orders.length === 0 ? <Empty /> : <OrdersList orders={orders} onSelect={onSelect} />}
+      </Section>
+    </div>
+  )
+}
+
+// ── Órdenes listas / entregadas ────────────────────────
+function ListasTab({ orders, onSelect }: {
+  orders: OrderWithItems[]; onSelect: (o: OrderWithItems) => void
+}) {
+  const total = orders.filter(o => o.status === 'entregado').reduce((a, o) => a + Number(o.total), 0)
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-2 gap-3">
+        <Kpi label="Órdenes listas" value={String(orders.length)} color="#fff" />
+        <Kpi label="Ventas (entregadas)" value={money(total)} color="var(--color-role-admin)" />
+      </div>
+      <Section title="Listas y entregadas">
+        {orders.length === 0 ? <Empty /> : <OrdersList orders={orders} onSelect={onSelect} />}
       </Section>
     </div>
   )
 }
 
 // ── Compartidos ────────────────────────────────────────
+function OrdersList({ orders, onSelect }: {
+  orders: OrderWithItems[]; onSelect: (o: OrderWithItems) => void
+}) {
+  return (
+    <div className="overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-surface)]">
+      {orders.map((o, i) => (
+        <button key={o.id} onClick={() => onSelect(o)}
+                className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[var(--color-surface-2)] ${i > 0 ? 'border-t border-[var(--color-border)]' : ''}`}>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[15px] font-bold text-white">#{o.folio}</span>
+              <StatusBadge status={o.status} />
+            </div>
+            <p className="mt-0.5 truncate text-[13px] text-[var(--color-text-secondary)]">
+              {fmtDateTime(o.created_at)} · {SERVICE_LABELS[o.service]}
+              {o.created_by_name && ` · Tomó: ${o.created_by_name}`}
+              {o.delivered_by_name && ` · Cobró: ${o.delivered_by_name}`}
+            </p>
+          </div>
+          <span className="tabular text-[15px] font-semibold text-white">{money(o.total)}</span>
+          <ChevronRight size={18} style={{ color: 'var(--color-text-tertiary)' }} />
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function Kpi({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="rounded-[var(--radius-lg)] bg-[var(--color-surface)] p-4">

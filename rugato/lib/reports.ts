@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { mexicoTodayStartISO } from '@/lib/time'
-import { type OrderWithItems } from '@/lib/orders'
+import { type OrderWithItems, type OrderStatus } from '@/lib/orders'
 
 export interface ReportTotals {
   ventas: number
@@ -53,8 +53,12 @@ export async function listEmployees(): Promise<Employee[]> {
   return data ?? []
 }
 
-/** Órdenes del periodo, opcionalmente de un empleado (tomó o cobró). */
-export async function ordersInRange(range: RangeKey, employeeId?: number | null): Promise<OrderWithItems[]> {
+/** Órdenes del periodo; opcionalmente de un empleado (tomó o cobró) y por estatus. */
+export async function ordersInRange(
+  range: RangeKey,
+  employeeId?: number | null,
+  statuses?: OrderStatus[],
+): Promise<OrderWithItems[]> {
   const { start, end } = rangeFor(range)
   let q = supabase
     .from('orders')
@@ -63,6 +67,7 @@ export async function ordersInRange(range: RangeKey, employeeId?: number | null)
     .lt('created_at', end)
     .order('created_at', { ascending: false })
   if (employeeId) q = q.or(`created_by.eq.${employeeId},delivered_by.eq.${employeeId}`)
+  if (statuses?.length) q = q.in('status', statuses)
   const { data, error } = await q
   if (error) throw new Error(error.message)
   return (data ?? []) as OrderWithItems[]
