@@ -11,8 +11,8 @@ import AddItemSheet from '@/components/orders/AddItemSheet'
 import { supabase } from '@/lib/supabase'
 import {
   type OrderWithItems, type OrderItem, type OrderAudit, type OrderStatus,
-  type PaymentMethod, type ServiceType, type Actor,
-  SERVICE_LABELS, PAYMENT_LABELS, isEditable, ordersApi,
+  type PaymentMethod, type ServiceType, type Actor, type StaffMember,
+  SERVICE_LABELS, PAYMENT_LABELS, isEditable, ordersApi, fetchStaff,
 } from '@/lib/orders'
 import { STATUS_LABELS, STATUS_HEX } from '@/lib/roles'
 
@@ -49,6 +49,18 @@ export default function OrderDetail({ order, actor, canDeliver, canEdit = true, 
   useEffect(() => { loadAudit() }, [loadAudit, order])
 
   const [flashId, setFlashId] = useState<number | null>(null)
+
+  // Empleado al que se le asigna el cobro (por defecto, el usuario actual).
+  const [collectors, setCollectors] = useState<StaffMember[]>([])
+  const [collectorId, setCollectorId] = useState<number | null>(actor.id)
+  useEffect(() => {
+    if (canDeliver && order.status !== 'entregado') {
+      fetchStaff().then(list => {
+        setCollectors(list)
+        setCollectorId(cur => cur ?? actor.id ?? list[0]?.id ?? null)
+      }).catch(() => {})
+    }
+  }, [canDeliver, order.status, actor.id])
 
   async function run(fn: () => Promise<unknown>) {
     setError('')
@@ -97,8 +109,15 @@ export default function OrderDetail({ order, actor, canDeliver, canEdit = true, 
                   value={payment} onChange={setPayment}
                   options={(Object.keys(PAYMENT_LABELS) as PaymentMethod[]).map(p => ({ value: p, label: PAYMENT_LABELS[p] }))}
                 />
+                <label className="flex items-center gap-2 text-[13px] text-[var(--color-text-secondary)]">
+                  Cobra:
+                  <select value={collectorId ?? ''} onChange={e => setCollectorId(Number(e.target.value) || null)}
+                          className="flex-1 rounded-[var(--radius-md)] bg-[var(--color-bg-primary)] px-3 py-2 text-[15px] text-white outline-none">
+                    {collectors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </label>
                 <Button block disabled={busy || !allReady}
-                        onClick={() => run(() => ordersApi.deliver(order.id, actor.id, payment))}>
+                        onClick={() => run(() => ordersApi.deliver(order.id, collectorId, payment))}>
                   {allReady ? `Entregar y cobrar $${Number(order.total).toFixed(0)}` : 'Faltan productos por estar listos'}
                 </Button>
               </div>

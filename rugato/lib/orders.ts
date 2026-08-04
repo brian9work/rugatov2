@@ -122,6 +122,14 @@ async function json<T>(res: Response): Promise<T> {
   return body as T
 }
 
+export interface StaffMember { id: number; name: string; type: string; is_active: boolean }
+
+/** Empleados activos (vía route handler service_role; el mesero no puede listar por RLS). */
+export async function fetchStaff(): Promise<StaffMember[]> {
+  const { users } = await fetch('/api/usuarios').then(json<{ users: StaffMember[] }>)
+  return (users ?? []).filter(u => u.is_active)
+}
+
 export const ordersApi = {
   create: (payload: CreateOrderPayload) =>
     fetch('/api/orders', {
