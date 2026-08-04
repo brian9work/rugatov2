@@ -40,6 +40,7 @@ export interface CartLine {
   optionIds: number[]
   notes: string
   extraCharge: number
+  price: number // precio unitario escrito a mano (solo productos "al gusto")
 }
 
 export function unitPriceOf(product: ProductFull, size: ProductSize): number {
@@ -48,7 +49,7 @@ export function unitPriceOf(product: ProductFull, size: ProductSize): number {
 }
 
 export function lineTotal(line: CartLine): number {
-  const base = unitPriceOf(line.product, line.size)
+  const base = line.product.category?.is_freeform ? (line.price || 0) : unitPriceOf(line.product, line.size)
   const extras = line.product.extras
     .filter(e => line.extraIds.includes(e.id))
     .reduce((a, e) => a + Number(e.price), 0)
@@ -75,6 +76,7 @@ export interface CreateOrderPayload {
     size: ProductSize
     quantity: number
     extra_charge: number
+    price: number
     notes: string | null
     removed_ingredients: string[]
     extras: string[]
@@ -89,6 +91,7 @@ export function lineToItem(l: CartLine) {
     size: l.size,
     quantity: l.quantity,
     extra_charge: l.extraCharge || 0,
+    price: l.price || 0, // el servidor lo usa solo para productos "al gusto"
     notes: l.notes.trim() || null,
     removed_ingredients: l.removedIngredientIds.map(String),
     extras: l.extraIds.map(String),
@@ -100,19 +103,7 @@ export function cartToPayload(
   lines: CartLine[],
   meta: { created_by: number | null; service: ServiceType; table_number: number | null; customer_name: string | null; notes: string | null },
 ): CreateOrderPayload {
-  return {
-    ...meta,
-    items: lines.map(l => ({
-      product_id: l.product.id,
-      size: l.size,
-      quantity: l.quantity,
-      extra_charge: l.extraCharge || 0,
-      notes: l.notes.trim() || null,
-      removed_ingredients: l.removedIngredientIds.map(String),
-      extras: l.extraIds.map(String),
-      options: l.optionIds.map(String),
-    })),
-  }
+  return { ...meta, items: lines.map(lineToItem) }
 }
 
 // ── Cliente HTTP (writes → route handlers con service_role) ──

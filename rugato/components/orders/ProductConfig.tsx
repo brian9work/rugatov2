@@ -22,17 +22,21 @@ export default function ProductConfig({ product, onClose, onAdd }: Props) {
   const mode = product.category?.pricing_mode ?? 'unico'
   const sizes = sizesFor(mode)
 
+  const freeform = product.category?.is_freeform ?? false
+
   const [size, setSize] = useState<ProductSize>(sizes[0])
   const [quantity, setQuantity] = useState(1)
   const [removed, setRemoved] = useState<number[]>([])
   const [extraIds, setExtraIds] = useState<number[]>([])
   const [optionIds, setOptionIds] = useState<number[]>([])
   const [notes, setNotes] = useState('')
+  const [price, setPrice] = useState('') // solo "al gusto"
 
   const draft: CartLine = useMemo(() => ({
     key: '', product, size, quantity,
     removedIngredientIds: removed, extraIds, optionIds, notes, extraCharge: 0,
-  }), [product, size, quantity, removed, extraIds, optionIds, notes])
+    price: Number(price) || 0,
+  }), [product, size, quantity, removed, extraIds, optionIds, notes, price])
 
   function toggle(list: number[], set: (v: number[]) => void, id: number) {
     set(list.includes(id) ? list.filter(x => x !== id) : [...list, id])
@@ -133,6 +137,17 @@ export default function ProductConfig({ product, onClose, onAdd }: Props) {
         <Section label="Cantidad">
           <Stepper value={quantity} onChange={setQuantity} />
         </Section>
+
+        {/* Precio a mano: solo en productos "al gusto" */}
+        {freeform && (
+          <Section label="Precio">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-tertiary)]">$</span>
+              <input inputMode="decimal" value={price} onChange={e => setPrice(e.target.value)} placeholder="0"
+                     className="tabular w-full rounded-[var(--radius-md)] bg-[var(--color-bg-primary)] py-2.5 pl-7 pr-3 text-[17px] text-white placeholder:text-[var(--color-text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--color-accent)]" />
+            </div>
+          </Section>
+        )}
 
         {/* Notas */}
         <Section label="Notas">
