@@ -1,0 +1,10 @@
+-- get_report gana 'sales_by_payment': ventas entregadas agrupadas por método de
+-- pago (efectivo/tarjeta/transferencia). El resto igual que en 0006.
+-- Fuente de verdad: la BD (aplicado vía MCP). Fragmento agregado:
+--
+--   'sales_by_payment', coalesce((select jsonb_agg(row_to_json(t)) from (
+--      select coalesce(payment::text,'sin_registrar') as method,
+--             sum(total) as amount, count(*) as ordenes
+--      from sales group by payment order by sum(total) desc) t), '[]'::jsonb)
+--
+-- (La CTE 'sales' ahora también selecciona o.payment.)

@@ -1,0 +1,16 @@
+-- Productos "al gusto" (category.is_freeform) no tienen precio fijo: el precio
+-- unitario lo escribe quien toma la orden y viaja en item.price.
+--
+-- create_order y add_order_item se recrean para que, cuando el producto sea
+-- freeform, usen item.price como unit_price en lugar de product_prices:
+--
+--   select is_freeform into v_free from categories where id = v_product.category_id;
+--   if v_free then
+--     v_unit := coalesce((item->>'price')::numeric, 0);
+--   else
+--     select price into v_unit from product_prices where product_id = v_product.id and size = v_size;
+--     if v_unit is null then raise exception 'Sin precio para % tamaño %', ...; end if;
+--   end if;
+--
+-- El resto de ambas funciones queda igual que en 0007. Fuente de verdad: la BD
+-- (aplicado vía MCP en la migración 0012_freeform_price).
