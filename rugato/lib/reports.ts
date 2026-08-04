@@ -13,12 +13,14 @@ export interface DayRow { dia: string; ventas: number; ordenes: number; gastos: 
 export interface ProductRow { name: string; qty: number; revenue: number }
 export interface CategoryRow { name: string; color: string; qty: number; revenue: number }
 export interface ExpenseCatRow { name: string; amount: number }
+export interface PaymentRow { method: string; amount: number; ordenes: number }
 
 export interface Report {
   totals: ReportTotals
   by_day: DayRow[]
   top_products: ProductRow[]
   sales_by_category: CategoryRow[]
+  sales_by_payment: PaymentRow[]
   expenses_by_category: ExpenseCatRow[]
 }
 

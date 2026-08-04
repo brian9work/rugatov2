@@ -6,7 +6,7 @@ import Segmented from '@/components/ui/Segmented'
 import StatusBadge from '@/components/ui/StatusBadge'
 import OrderDetail from '@/components/orders/OrderDetail'
 import { useUser } from '@/lib/UserContext'
-import { type OrderWithItems, SERVICE_LABELS } from '@/lib/orders'
+import { type OrderWithItems, SERVICE_LABELS, PAYMENT_LABELS } from '@/lib/orders'
 import {
   type Report, type RangeKey, type Employee,
   RANGE_LABELS, getReport, listEmployees, ordersInRange,
@@ -175,8 +175,38 @@ function VentasTab({ report }: { report: Report }) {
           </div>
         )}
       </Section>
+
+      <PaymentBreakdown rows={report.sales_by_payment} />
     </div>
   )
+}
+
+// Dónde está el dinero: ventas por método de pago.
+function PaymentBreakdown({ rows }: { rows: import('@/lib/reports').PaymentRow[] }) {
+  return (
+    <Section title="Ventas por método de pago">
+      {rows.length === 0 ? <Empty /> : (
+        <div className="overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-surface)]">
+          {rows.map((r, i) => (
+            <div key={r.method} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? 'border-t border-[var(--color-border)]' : ''}`}>
+              <span className="h-3 w-3 rounded-full" style={{ background: PAY_COLOR[r.method] ?? 'var(--color-text-tertiary)' }} />
+              <span className="flex-1 text-[15px] text-white">{payLabel(r.method)}</span>
+              <span className="tabular text-[13px] text-[var(--color-text-secondary)]">{r.ordenes} órd</span>
+              <span className="tabular text-[15px] font-medium text-white">{money(r.amount)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Section>
+  )
+}
+
+const PAY_COLOR: Record<string, string> = {
+  efectivo: 'var(--color-role-admin)', tarjeta: 'var(--color-role-user)',
+  transferencia: 'var(--color-role-barra)', sin_registrar: 'var(--color-text-tertiary)',
+}
+function payLabel(m: string): string {
+  return (PAYMENT_LABELS as Record<string, string>)[m] ?? 'Sin registrar'
 }
 
 // ── Gastos e ingresos ──────────────────────────────────
@@ -189,6 +219,8 @@ function GastosTab({ report }: { report: Report }) {
         <Kpi label="Gastos" value={money(t.gastos)} color="#fb2424" />
         <Kpi label="Balance" value={money(t.balance)} color={t.balance >= 0 ? 'var(--color-role-admin)' : '#fb2424'} />
       </div>
+
+      <PaymentBreakdown rows={report.sales_by_payment} />
 
       <Section title="Gastos por categoría">
         {report.expenses_by_category.length === 0 ? <Empty /> : (
