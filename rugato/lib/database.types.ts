@@ -12,6 +12,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          id: number
+          business_name: string | null
+          business_address: string | null
+          business_phone: string | null
+          payments: string[]
+          bell_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          business_name?: string | null
+          business_address?: string | null
+          business_phone?: string | null
+          payments?: string[]
+          bell_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          business_name?: string | null
+          business_address?: string | null
+          business_phone?: string | null
+          payments?: string[]
+          bell_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           color: string
@@ -788,7 +818,7 @@ export type Database = {
       pricing_mode: "unico" | "tres_tamanos"
       product_size: "unico" | "chico" | "mediano" | "grande"
       service_type: "llevar" | "aqui"
-      user_role: "admin" | "cocina" | "user"
+      user_role: "admin" | "cocina" | "user" | "barra"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -928,7 +958,7 @@ export const Constants = {
       pricing_mode: ["unico", "tres_tamanos"],
       product_size: ["unico", "chico", "mediano", "grande"],
       service_type: ["llevar", "aqui"],
-      user_role: ["admin", "cocina", "user"],
+      user_role: ["admin", "cocina", "user", "barra"],
     },
   },
 } as const
