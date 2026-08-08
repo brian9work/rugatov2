@@ -22,6 +22,7 @@ export interface Report {
   sales_by_category: CategoryRow[]
   sales_by_payment: PaymentRow[]
   expenses_by_category: ExpenseCatRow[]
+  expenses_by_payment: PaymentRow[]
 }
 
 export type RangeKey = 'hoy' | '7d' | '30d' | 'custom'

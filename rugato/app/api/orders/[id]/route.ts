@@ -11,9 +11,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const supabase = createAdminClient()
 
   if (body.action === 'cancel') {
-    // cancela todas las líneas; el trigger deja el ticket en 'cancelado'
-    const { error } = await supabase
-      .from('order_items').update({ status: 'cancelado' }).eq('order_id', orderId)
+    // cancela + total 0 + auditoría
+    const { error } = await supabase.rpc('cancel_order', {
+      p_order: orderId, p_user: body.user_id ?? null, p_user_name: body.user_name ?? null,
+    })
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json({ success: true })
   }

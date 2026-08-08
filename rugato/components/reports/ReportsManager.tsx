@@ -118,6 +118,7 @@ export default function ReportsManager() {
           canEdit={false}
           canEditPrice
           canEditPayment
+          canDelete
           onClose={() => setSelected(null)}
           onChanged={refreshAll}
         />
@@ -160,6 +161,8 @@ function VentasTab({ report }: { report: Report }) {
         )}
       </Section>
 
+      <PaymentBreakdown rows={report.sales_by_payment} />
+
       <Section title="Productos más vendidos">
         {report.top_products.length === 0 ? <Empty /> : (
           <div className="flex flex-col gap-3">
@@ -192,16 +195,16 @@ function VentasTab({ report }: { report: Report }) {
           </div>
         )}
       </Section>
-
-      <PaymentBreakdown rows={report.sales_by_payment} />
     </div>
   )
 }
 
-// Dónde está el dinero: ventas por método de pago.
-function PaymentBreakdown({ rows }: { rows: import('@/lib/reports').PaymentRow[] }) {
+// Dónde está el dinero: montos por método de pago.
+function PaymentBreakdown({ rows, title = 'Ventas por método de pago' }: {
+  rows: import('@/lib/reports').PaymentRow[]; title?: string
+}) {
   return (
-    <Section title="Ventas por método de pago">
+    <Section title={title}>
       {rows.length === 0 ? <Empty /> : (
         <div className="overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-surface)]">
           {rows.map((r, i) => (
@@ -237,7 +240,8 @@ function GastosTab({ report }: { report: Report }) {
         <Kpi label="Balance" value={money(t.balance)} color={t.balance >= 0 ? 'var(--color-role-admin)' : '#fb2424'} />
       </div>
 
-      <PaymentBreakdown rows={report.sales_by_payment} />
+      <PaymentBreakdown rows={report.sales_by_payment} title="Ingresos por método de pago" />
+      <PaymentBreakdown rows={report.expenses_by_payment} title="Gastos por método de pago" />
 
       <Section title="Gastos por categoría">
         {report.expenses_by_category.length === 0 ? <Empty /> : (

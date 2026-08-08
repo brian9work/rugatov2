@@ -5,7 +5,8 @@ import { Plus, Trash2, Wallet, ArrowDownLeft, ArrowUpRight } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import Sheet from '@/components/ui/Sheet'
 import {
-  type ExpenseCategory, type ExpenseWithCategory, type Sale, expensesApi,
+  type ExpenseCategory, type ExpenseWithCategory, type Sale, type PaymentMethod,
+  PAYMENT_LABELS, expensesApi,
 } from '@/lib/expenses'
 
 type Movement =
@@ -130,11 +131,12 @@ function AddExpenseSheet({ open, onClose, onSaved, categories }: {
   const [amount, setAmount] = useState('')
   const [categoryId, setCategoryId] = useState<number>(0)
   const [reason, setReason] = useState('')
+  const [payment, setPayment] = useState<PaymentMethod>('efectivo')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (open) { setAmount(''); setReason(''); setCategoryId(categories[0]?.id ?? 0); setError('') }
+    if (open) { setAmount(''); setReason(''); setCategoryId(categories[0]?.id ?? 0); setPayment('efectivo'); setError('') }
   }, [open, categories])
 
   async function save() {
@@ -144,7 +146,7 @@ function AddExpenseSheet({ open, onClose, onSaved, categories }: {
     if (!categoryId) { setError('Elige una categoría'); return }
     try {
       setSaving(true)
-      await expensesApi.add({ category_id: categoryId, amount: value, reason: reason.trim() || null })
+      await expensesApi.add({ category_id: categoryId, amount: value, reason: reason.trim() || null, payment })
       onSaved(); onClose()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al guardar')
@@ -178,6 +180,12 @@ function AddExpenseSheet({ open, onClose, onSaved, categories }: {
           <label className={label}>Categoría</label>
           <select className={field} value={categoryId} onChange={e => setCategoryId(Number(e.target.value))}>
             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <div className="flex flex-col gap-2">
+          <label className={label}>Pagado con</label>
+          <select className={field} value={payment} onChange={e => setPayment(e.target.value as PaymentMethod)}>
+            {(Object.keys(PAYMENT_LABELS) as PaymentMethod[]).map(p => <option key={p} value={p}>{PAYMENT_LABELS[p]}</option>)}
           </select>
         </div>
         <div className="flex flex-col gap-2">

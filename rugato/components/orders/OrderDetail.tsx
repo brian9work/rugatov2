@@ -16,13 +16,14 @@ import {
 } from '@/lib/orders'
 import { STATUS_LABELS, STATUS_HEX } from '@/lib/roles'
 
-export default function OrderDetail({ order, actor, canDeliver, canEdit = true, canEditPrice = false, canEditPayment = false, onClose, onChanged }: {
+export default function OrderDetail({ order, actor, canDeliver, canEdit = true, canEditPrice = false, canEditPayment = false, canDelete = false, onClose, onChanged }: {
   order: OrderWithItems
   actor: Actor
   canDeliver: boolean
   canEdit?: boolean
   canEditPrice?: boolean
   canEditPayment?: boolean
+  canDelete?: boolean
   onClose: () => void
   onChanged: () => void
 }) {
@@ -125,8 +126,14 @@ export default function OrderDetail({ order, actor, canDeliver, canEdit = true, 
             )}
             {editable && (
               <Button variant="destructive" block disabled={busy}
-                      onClick={() => run(() => ordersApi.cancel(order.id))}>
+                      onClick={() => run(() => ordersApi.cancel(order.id, actor))}>
                 Cancelar orden
+              </Button>
+            )}
+            {canDelete && order.status !== 'cancelado' && (
+              <Button variant="destructive" block disabled={busy}
+                      onClick={() => { if (confirm('¿Eliminar la orden? Se marcará como cancelada y el total quedará en 0.')) run(() => ordersApi.cancel(order.id, actor)) }}>
+                Eliminar
               </Button>
             )}
           </div>
@@ -331,7 +338,7 @@ function auditText(a: OrderAudit): string {
     case 'precio':   return `Cambió el total de $${d.de} a $${d.a}`
     case 'pago':     return `Cambió la forma de pago de ${d.de ?? '—'} a ${d.a}`
     case 'entregar': return `Entregó y cobró (${d.payment})`
-    case 'cancelar': return 'Canceló la orden'
+    case 'cancelar': return `Eliminó la orden (total anterior $${d.total_anterior ?? 0}, ahora $0)`
     default:         return a.action
   }
 }

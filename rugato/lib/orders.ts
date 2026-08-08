@@ -136,11 +136,12 @@ export const ordersApi = {
       body: JSON.stringify({ status }),
     }).then(json<{ success: true }>),
 
-  cancel: (orderId: number) =>
+  // Cancela la orden, pone el total en 0 y lo registra (botón "Eliminar").
+  cancel: (orderId: number, by: Actor) =>
     fetch(`/api/orders/${orderId}`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ action: 'cancel' }),
+      body: JSON.stringify({ action: 'cancel', user_id: by.id, user_name: by.name }),
     }).then(json<{ success: true }>),
 
   deliver: (orderId: number, deliveredBy: number | null, payment: PaymentMethod) =>

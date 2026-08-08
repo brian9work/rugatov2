@@ -5,6 +5,11 @@ import { mexicoTodayStartISO } from '@/lib/time'
 export type Expense         = Database['public']['Tables']['expenses']['Row']
 export type ExpenseCategory = Database['public']['Tables']['expense_categories']['Row']
 export type ExpenseWithCategory = Expense & { category: ExpenseCategory | null }
+export type PaymentMethod   = Database['public']['Enums']['payment_method']
+
+export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
+  efectivo: 'Efectivo', tarjeta: 'Tarjeta', transferencia: 'Transferencia',
+}
 
 export type Period = 'hoy' | 'semana' | 'mes'
 
@@ -61,7 +66,7 @@ export const expensesApi = {
     return (data ?? []) as ExpenseWithCategory[]
   },
 
-  async add(input: { category_id: number; amount: number; reason: string | null }): Promise<void> {
+  async add(input: { category_id: number; amount: number; reason: string | null; payment: PaymentMethod }): Promise<void> {
     const { error } = await supabase.from('expenses').insert(input)
     if (error) throw new Error(error.message)
   },

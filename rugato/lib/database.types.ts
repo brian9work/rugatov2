@@ -107,6 +107,7 @@ export type Database = {
           category_id: number
           created_at: string
           id: number
+          payment: Database["public"]["Enums"]["payment_method"]
           reason: string | null
           updated_at: string
           user_id: number | null
@@ -116,6 +117,7 @@ export type Database = {
           category_id: number
           created_at?: string
           id?: never
+          payment?: Database["public"]["Enums"]["payment_method"]
           reason?: string | null
           updated_at?: string
           user_id?: number | null
@@ -125,6 +127,7 @@ export type Database = {
           category_id?: number
           created_at?: string
           id?: never
+          payment?: Database["public"]["Enums"]["payment_method"]
           reason?: string | null
           updated_at?: string
           user_id?: number | null
@@ -739,6 +742,10 @@ export type Database = {
         Returns: number
       }
       assert_open: { Args: { p_order: number }; Returns: undefined }
+      cancel_order: {
+        Args: { p_order: number; p_user: number; p_user_name: string }
+        Returns: undefined
+      }
       create_order: { Args: { payload: Json }; Returns: number }
       current_user_id: { Args: never; Returns: number }
       current_user_role: {
