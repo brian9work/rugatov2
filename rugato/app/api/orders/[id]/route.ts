@@ -30,6 +30,17 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     return NextResponse.json({ success: true })
   }
 
+  if (body.action === 'set_payment') {
+    if (!body.payment)
+      return NextResponse.json({ error: 'Falta la forma de pago' }, { status: 400 })
+    const { error } = await supabase.rpc('set_order_payment', {
+      p_order: orderId, p_payment: body.payment,
+      p_user: body.user_id ?? null, p_user_name: body.user_name ?? null,
+    })
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    return NextResponse.json({ success: true })
+  }
+
   if (body.action === 'set_total') {
     if (typeof body.total !== 'number' || body.total < 0)
       return NextResponse.json({ error: 'Total inválido' }, { status: 400 })

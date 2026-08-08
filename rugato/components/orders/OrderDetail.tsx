@@ -16,12 +16,13 @@ import {
 } from '@/lib/orders'
 import { STATUS_LABELS, STATUS_HEX } from '@/lib/roles'
 
-export default function OrderDetail({ order, actor, canDeliver, canEdit = true, canEditPrice = false, onClose, onChanged }: {
+export default function OrderDetail({ order, actor, canDeliver, canEdit = true, canEditPrice = false, canEditPayment = false, onClose, onChanged }: {
   order: OrderWithItems
   actor: Actor
   canDeliver: boolean
   canEdit?: boolean
   canEditPrice?: boolean
+  canEditPayment?: boolean
   onClose: () => void
   onChanged: () => void
 }) {
@@ -261,6 +262,22 @@ export default function OrderDetail({ order, actor, canDeliver, canEdit = true, 
             )}
           </div>
 
+          {/* Forma de pago (corregir en órdenes ya cobradas) */}
+          {order.status === 'entregado' && (
+            <div className="flex flex-col gap-2">
+              <span className="text-[13px] font-medium uppercase tracking-wide text-[var(--color-text-secondary)]">Forma de pago</span>
+              {canEditPayment ? (
+                <Segmented<PaymentMethod>
+                  value={(order.payment ?? 'efectivo') as PaymentMethod}
+                  onChange={p => run(() => ordersApi.setPayment(order.id, p, actor))}
+                  options={(Object.keys(PAYMENT_LABELS) as PaymentMethod[]).map(p => ({ value: p, label: PAYMENT_LABELS[p] }))}
+                />
+              ) : (
+                <span className="text-[15px] text-white">{order.payment ? PAYMENT_LABELS[order.payment] : 'Sin registrar'}</span>
+              )}
+            </div>
+          )}
+
           {/* Historial */}
           {audit.length > 0 && (
             <div>
@@ -312,6 +329,7 @@ function auditText(a: OrderAudit): string {
     case 'cantidad': return `Cambió ${d.producto} de ${d.de} a ${d.a}`
     case 'datos':    return 'Editó los datos'
     case 'precio':   return `Cambió el total de $${d.de} a $${d.a}`
+    case 'pago':     return `Cambió la forma de pago de ${d.de ?? '—'} a ${d.a}`
     case 'entregar': return `Entregó y cobró (${d.payment})`
     case 'cancelar': return 'Canceló la orden'
     default:         return a.action

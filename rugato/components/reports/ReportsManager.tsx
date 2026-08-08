@@ -8,7 +8,7 @@ import OrderDetail from '@/components/orders/OrderDetail'
 import { useUser } from '@/lib/UserContext'
 import { type OrderWithItems, SERVICE_LABELS, PAYMENT_LABELS } from '@/lib/orders'
 import {
-  type Report, type RangeKey, type Employee,
+  type Report, type RangeKey, type Employee, type CustomRange,
   RANGE_LABELS, getReport, listEmployees, ordersInRange,
 } from '@/lib/reports'
 
@@ -33,24 +33,29 @@ export default function ReportsManager() {
   const [ready, setReady] = useState<OrderWithItems[]>([])
   const [selected, setSelected] = useState<OrderWithItems | null>(null)
 
+  // rango personalizado (fechas)
+  const [dFrom, setDFrom] = useState(() => isoDaysAgo(6))
+  const [dTo, setDTo] = useState(() => isoDaysAgo(0))
+  const custom: CustomRange | null = range === 'custom' ? { start: dFrom, end: dTo } : null
+
   const load = useCallback(async () => {
-    try { setLoading(true); setError(''); setReport(await getReport(range)) }
+    try { setLoading(true); setError(''); setReport(await getReport(range, custom)) }
     catch (e) { setError(e instanceof Error ? e.message : 'Error al cargar') }
     finally { setLoading(false) }
-  }, [range])
+  }, [range, custom?.start, custom?.end]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadOrders = useCallback(async () => {
     try {
-      const rows = await ordersInRange(range, employeeId || null)
+      const rows = await ordersInRange(range, employeeId || null, undefined, custom)
       setOrders(rows)
       setSelected(prev => prev ? rows.find(o => o.id === prev.id) ?? null : null)
     } catch { /* el error del reporte ya se muestra */ }
-  }, [range, employeeId])
+  }, [range, employeeId, custom?.start, custom?.end]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadReady = useCallback(async () => {
-    try { setReady(await ordersInRange(range, null, ['listo', 'entregado'])) }
+    try { setReady(await ordersInRange(range, null, ['listo', 'entregado'], custom)) }
     catch { /* noop */ }
-  }, [range])
+  }, [range, custom?.start, custom?.end]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const refreshAll = useCallback(() => { loadOrders(); loadReady() }, [loadOrders, loadReady])
 
@@ -68,6 +73,17 @@ export default function ReportsManager() {
           options={(Object.keys(RANGE_LABELS) as RangeKey[]).map(k => ({ value: k, label: RANGE_LABELS[k] }))}
         />
       </div>
+
+      {/* Rango de fechas personalizado */}
+      {range === 'custom' && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <input type="date" value={dFrom} max={dTo} onChange={e => setDFrom(e.target.value)}
+                 className="rounded-[var(--radius-md)] bg-[var(--color-surface-2)] px-3 py-2 text-[15px] text-white outline-none" />
+          <span className="text-[15px] text-[var(--color-text-secondary)]">a</span>
+          <input type="date" value={dTo} min={dFrom} onChange={e => setDTo(e.target.value)}
+                 className="rounded-[var(--radius-md)] bg-[var(--color-surface-2)] px-3 py-2 text-[15px] text-white outline-none" />
+        </div>
+      )}
 
       {/* Secciones */}
       <div className="mb-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -101,6 +117,7 @@ export default function ReportsManager() {
           canDeliver={false}
           canEdit={false}
           canEditPrice
+          canEditPayment
           onClose={() => setSelected(null)}
           onChanged={refreshAll}
         />
@@ -392,4 +409,10 @@ function dayKeyMX(iso: string): string {
   return new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(new Date(iso))
+}
+
+// Fecha (YYYY-MM-DD, México) de hace N días.
+function isoDaysAgo(n: number): string {
+  const d = new Date(); d.setDate(d.getDate() - n)
+  return dayKeyMX(d.toISOString())
 }

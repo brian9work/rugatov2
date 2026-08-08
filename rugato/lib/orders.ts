@@ -190,4 +190,12 @@ export const ordersApi = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ action: 'set_total', total, user_id: by.id, user_name: by.name }),
     }).then(json<{ success: true }>),
+
+  // Corrige el método de pago de una orden ya cobrada (queda en el historial).
+  setPayment: (orderId: number, payment: PaymentMethod, by: Actor) =>
+    fetch(`/api/orders/${orderId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'set_payment', payment, user_id: by.id, user_name: by.name }),
+    }).then(json<{ success: true }>),
 }

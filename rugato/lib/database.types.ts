@@ -784,6 +784,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_order_payment: {
+        Args: {
+          p_order: number
+          p_payment: Database["public"]["Enums"]["payment_method"]
+          p_user: number
+          p_user_name: string
+        }
+        Returns: undefined
+      }
       set_order_total: {
         Args: { p_order: number; p_total: number; p_user: number; p_user_name: string }
         Returns: undefined

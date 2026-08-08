@@ -24,13 +24,20 @@ export interface Report {
   expenses_by_category: ExpenseCatRow[]
 }
 
-export type RangeKey = 'hoy' | '7d' | '30d'
+export type RangeKey = 'hoy' | '7d' | '30d' | 'custom'
 export const RANGE_LABELS: Record<RangeKey, string> = {
-  hoy: 'Hoy', '7d': '7 días', '30d': '30 días',
+  hoy: 'Hoy', '7d': '7 días', '30d': '30 días', custom: 'Fechas',
 }
 
-/** [inicio, fin) del rango en horario mexicano. fin = inicio de mañana. */
-export function rangeFor(key: RangeKey): { start: string; end: string } {
+export interface CustomRange { start: string; end: string } // YYYY-MM-DD
+
+/** [inicio, fin) del rango en horario mexicano. fin = inicio del día siguiente. */
+export function rangeFor(key: RangeKey, custom?: CustomRange | null): { start: string; end: string } {
+  if (key === 'custom' && custom?.start && custom?.end) {
+    const start = `${custom.start}T00:00:00-06:00`
+    const e = new Date(`${custom.end}T00:00:00-06:00`); e.setDate(e.getDate() + 1)
+    return { start, end: e.toISOString() }
+  }
   const todayStart = mexicoTodayStartISO()
   const end = new Date(todayStart); end.setDate(end.getDate() + 1)
   const start = new Date(todayStart)
@@ -39,8 +46,8 @@ export function rangeFor(key: RangeKey): { start: string; end: string } {
   return { start: start.toISOString(), end: end.toISOString() }
 }
 
-export async function getReport(range: RangeKey): Promise<Report> {
-  const { start, end } = rangeFor(range)
+export async function getReport(range: RangeKey, custom?: CustomRange | null): Promise<Report> {
+  const { start, end } = rangeFor(range, custom)
   const { data, error } = await supabase.rpc('get_report', { p_start: start, p_end: end })
   if (error) throw new Error(error.message)
   return data as unknown as Report
@@ -60,8 +67,9 @@ export async function ordersInRange(
   range: RangeKey,
   employeeId?: number | null,
   statuses?: OrderStatus[],
+  custom?: CustomRange | null,
 ): Promise<OrderWithItems[]> {
-  const { start, end } = rangeFor(range)
+  const { start, end } = rangeFor(range, custom)
   let q = supabase
     .from('orders')
     .select('*, items:order_items(*)')
