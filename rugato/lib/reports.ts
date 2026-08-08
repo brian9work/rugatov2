@@ -64,11 +64,14 @@ export async function listEmployees(): Promise<Employee[]> {
 }
 
 /** Órdenes del periodo; opcionalmente de un empleado (tomó o cobró) y por estatus. */
+export type EmployeeFilter = 'both' | 'created' | 'delivered' // ambos | tomó | cobró
+
 export async function ordersInRange(
   range: RangeKey,
   employeeId?: number | null,
   statuses?: OrderStatus[],
   custom?: CustomRange | null,
+  filterBy: EmployeeFilter = 'both',
 ): Promise<OrderWithItems[]> {
   const { start, end } = rangeFor(range, custom)
   let q = supabase
@@ -77,7 +80,11 @@ export async function ordersInRange(
     .gte('created_at', start)
     .lt('created_at', end)
     .order('created_at', { ascending: false })
-  if (employeeId) q = q.or(`created_by.eq.${employeeId},delivered_by.eq.${employeeId}`)
+  if (employeeId) {
+    if (filterBy === 'created') q = q.eq('created_by', employeeId)
+    else if (filterBy === 'delivered') q = q.eq('delivered_by', employeeId)
+    else q = q.or(`created_by.eq.${employeeId},delivered_by.eq.${employeeId}`)
+  }
   if (statuses?.length) q = q.in('status', statuses)
   const { data, error } = await q
   if (error) throw new Error(error.message)

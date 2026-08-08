@@ -66,20 +66,44 @@ export default function OrdersBoard() {
     return rows
   }, [])
 
+  const getCtx = useCallback(() => {
+    audioRef.current ??= new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+    return audioRef.current
+  }, [])
+
+  // Desbloquea el audio en el primer gesto (móvil bloquea autoplay hasta entonces).
+  useEffect(() => {
+    const unlock = () => {
+      try {
+        const ctx = getCtx()
+        ctx.resume()
+        const src = ctx.createBufferSource()
+        src.buffer = ctx.createBuffer(1, 1, 22050)
+        src.connect(ctx.destination); src.start(0) // "blip" silencioso para iOS
+      } catch { /* ignore */ }
+    }
+    window.addEventListener('pointerdown', unlock, { once: true })
+    window.addEventListener('touchend', unlock, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('touchend', unlock)
+    }
+  }, [getCtx])
+
   // campana (Web Audio) — heredada del 0.1 §7.6
   const bell = useCallback(() => {
     try {
-      audioRef.current ??= new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
-      const ctx = audioRef.current
+      const ctx = getCtx()
+      if (ctx.state === 'suspended') ctx.resume()
       const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain()
       o1.type = o2.type = 'sine'
       o1.frequency.value = 830; o2.frequency.value = 1245
-      g.gain.setValueAtTime(0.5, ctx.currentTime)
+      g.gain.setValueAtTime(0.6, ctx.currentTime)
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2)
       o1.connect(g); o2.connect(g); g.connect(ctx.destination)
       o1.start(); o2.start(); o1.stop(ctx.currentTime + 1.2); o2.stop(ctx.currentTime + 1.2)
     } catch { /* ignore */ }
-  }, [])
+  }, [getCtx])
 
   useEffect(() => {
     load().then(rows => { knownIds.current = new Set((rows ?? []).map(o => o.id)) })

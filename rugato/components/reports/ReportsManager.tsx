@@ -8,7 +8,7 @@ import OrderDetail from '@/components/orders/OrderDetail'
 import { useUser } from '@/lib/UserContext'
 import { type OrderWithItems, SERVICE_LABELS, PAYMENT_LABELS } from '@/lib/orders'
 import {
-  type Report, type RangeKey, type Employee, type CustomRange,
+  type Report, type RangeKey, type Employee, type CustomRange, type EmployeeFilter,
   RANGE_LABELS, getReport, listEmployees, ordersInRange,
 } from '@/lib/reports'
 
@@ -29,6 +29,7 @@ export default function ReportsManager() {
 
   const [employees, setEmployees] = useState<Employee[]>([])
   const [employeeId, setEmployeeId] = useState<number | 0>(0)
+  const [empFilter, setEmpFilter] = useState<EmployeeFilter>('both')
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [ready, setReady] = useState<OrderWithItems[]>([])
   const [selected, setSelected] = useState<OrderWithItems | null>(null)
@@ -46,11 +47,11 @@ export default function ReportsManager() {
 
   const loadOrders = useCallback(async () => {
     try {
-      const rows = await ordersInRange(range, employeeId || null, undefined, custom)
+      const rows = await ordersInRange(range, employeeId || null, undefined, custom, empFilter)
       setOrders(rows)
       setSelected(prev => prev ? rows.find(o => o.id === prev.id) ?? null : null)
     } catch { /* el error del reporte ya se muestra */ }
-  }, [range, employeeId, custom?.start, custom?.end]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [range, employeeId, empFilter, custom?.start, custom?.end]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadReady = useCallback(async () => {
     try { setReady(await ordersInRange(range, null, ['listo', 'entregado'], custom)) }
@@ -106,6 +107,7 @@ export default function ReportsManager() {
       ) : (
         <EmpleadosTab
           employees={employees} employeeId={employeeId} setEmployeeId={setEmployeeId}
+          empFilter={empFilter} setEmpFilter={setEmpFilter}
           orders={orders} onSelect={setSelected}
         />
       )}
@@ -260,10 +262,12 @@ function GastosTab({ report }: { report: Report }) {
 }
 
 // ── Empleados (con desglose por tiempo) ────────────────
-function EmpleadosTab({ employees, employeeId, setEmployeeId, orders, onSelect }: {
+function EmpleadosTab({ employees, employeeId, setEmployeeId, empFilter, setEmpFilter, orders, onSelect }: {
   employees: Employee[]
   employeeId: number | 0
   setEmployeeId: (v: number | 0) => void
+  empFilter: EmployeeFilter
+  setEmpFilter: (v: EmployeeFilter) => void
   orders: OrderWithItems[]
   onSelect: (o: OrderWithItems) => void
 }) {
@@ -285,11 +289,23 @@ function EmpleadosTab({ employees, employeeId, setEmployeeId, orders, onSelect }
 
   return (
     <div className="flex flex-col gap-6">
-      <select value={employeeId} onChange={e => setEmployeeId(Number(e.target.value))}
-              className="w-full rounded-[var(--radius-md)] bg-[var(--color-surface-2)] px-3 py-2.5 text-[15px] text-white outline-none">
-        <option value={0}>Todos los empleados</option>
-        {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-      </select>
+      <div className="flex flex-col gap-3">
+        <select value={employeeId} onChange={e => setEmployeeId(Number(e.target.value))}
+                className="w-full rounded-[var(--radius-md)] bg-[var(--color-surface-2)] px-3 py-2.5 text-[15px] text-white outline-none">
+          <option value={0}>Todos los empleados</option>
+          {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+        </select>
+        {employeeId !== 0 && (
+          <Segmented<EmployeeFilter>
+            value={empFilter} onChange={setEmpFilter}
+            options={[
+              { value: 'both', label: 'Ambos' },
+              { value: 'created', label: 'Tomó' },
+              { value: 'delivered', label: 'Cobró' },
+            ]}
+          />
+        )}
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Kpi label="Órdenes" value={String(orders.length)} color="#fff" />
