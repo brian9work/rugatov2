@@ -48,6 +48,17 @@ Agrega **en el servidor** (no se traen filas crudas al navegador). Devuelve:
 - Productos más vendidos (barras).
 - Ventas por categoría (con color) y gastos por categoría.
 
+### Corte de caja — pestaña Empleados
+- Es de quien **cobró** (`delivered_by`), por **fecha de cobro** (`delivered_at`),
+  solo órdenes `entregado` (`lib/reports.ts` → `collectedInRange` + `cashCuts`).
+- Se separa por forma de pago. **Solo el efectivo se le pide al empleado**;
+  tarjeta y transferencia no entran en "Efectivo a entregar". Órdenes sin forma
+  de pago salen como "Sin registrar · revisar".
+- "Todos los empleados" → una fila por empleado con su efectivo; tocarla abre su
+  corte. Un empleado → KPIs Efectivo a entregar / Total cobrado + desglose.
+- Corregir la forma de pago de una orden (detalle de la orden) actualiza el
+  corte al momento.
+
 ### Panel — `/dashboard` → `components/dashboard/PanelHome.tsx`
 - Saludo + nombre + rol.
 - **Admin**: tarjetas Ventas/Gastos/Balance de hoy + Órdenes activas + accesos a
@@ -80,4 +91,4 @@ Agrega **en el servidor** (no se traen filas crudas al navegador). Devuelve:
 1. **Rango personalizado** (fechas from/to libres); hoy solo 3 presets.
 2. **Ventas por estación** y por forma de pago (datos ya disponibles).
 3. **Exportar** (CSV/PDF).
-4. Caja / corte formal — depende del módulo de Caja.
+4. Caja / corte formal (apertura, fondo, cierre con conteo) — depende del módulo de Caja. El corte por empleado ya existe (ver §4).

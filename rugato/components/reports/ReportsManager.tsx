@@ -9,7 +9,8 @@ import { useUser } from '@/lib/UserContext'
 import { type OrderWithItems, SERVICE_LABELS, PAYMENT_LABELS } from '@/lib/orders'
 import {
   type Report, type RangeKey, type Employee, type CustomRange, type EmployeeFilter,
-  RANGE_LABELS, getReport, listEmployees, ordersInRange,
+  type CollectedOrder, type CashCut, type CutMethod,
+  RANGE_LABELS, getReport, listEmployees, ordersInRange, collectedInRange, cashCuts,
 } from '@/lib/reports'
 
 const money = (n: number) => `$${Number(n).toLocaleString('es-MX', { maximumFractionDigits: 0 })}`
@@ -32,6 +33,7 @@ export default function ReportsManager() {
   const [empFilter, setEmpFilter] = useState<EmployeeFilter>('both')
   const [orders, setOrders] = useState<OrderWithItems[]>([])
   const [ready, setReady] = useState<OrderWithItems[]>([])
+  const [collected, setCollected] = useState<CollectedOrder[]>([])
   const [selected, setSelected] = useState<OrderWithItems | null>(null)
 
   // rango personalizado (fechas)
@@ -39,8 +41,9 @@ export default function ReportsManager() {
   const [dTo, setDTo] = useState(() => isoDaysAgo(0))
   const custom: CustomRange | null = range === 'custom' ? { start: dFrom, end: dTo } : null
 
-  const load = useCallback(async () => {
-    try { setLoading(true); setError(''); setReport(await getReport(range, custom)) }
+  // silent: recarga sin mostrar "Cargando…" (p. ej. tras corregir una orden)
+  const load = useCallback(async (silent = false) => {
+    try { if (!silent) setLoading(true); setError(''); setReport(await getReport(range, custom)) }
     catch (e) { setError(e instanceof Error ? e.message : 'Error al cargar') }
     finally { setLoading(false) }
   }, [range, custom?.start, custom?.end]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -53,16 +56,25 @@ export default function ReportsManager() {
     } catch { /* el error del reporte ya se muestra */ }
   }, [range, employeeId, empFilter, custom?.start, custom?.end]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadReady = useCallback(async () => {
-    try { setReady(await ordersInRange(range, null, ['listo', 'entregado'], custom)) }
-    catch { /* noop */ }
+  // Órdenes del periodo (no dependen del empleado): listas/entregadas + cobradas para el corte.
+  const loadPeriodOrders = useCallback(async () => {
+    try {
+      const [readyRows, collectedRows] = await Promise.all([
+        ordersInRange(range, null, ['listo', 'entregado'], custom),
+        collectedInRange(range, custom),
+      ])
+      setReady(readyRows)
+      setCollected(collectedRows)
+    } catch { /* noop */ }
   }, [range, custom?.start, custom?.end]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const refreshAll = useCallback(() => { loadOrders(); loadReady() }, [loadOrders, loadReady])
+  const cuts = useMemo(() => cashCuts(collected, employees), [collected, employees])
+
+  const refreshAll = useCallback(() => { loadOrders(); loadPeriodOrders(); load(true) }, [loadOrders, loadPeriodOrders, load])
 
   useEffect(() => { load() }, [load])
   useEffect(() => { loadOrders() }, [loadOrders])
-  useEffect(() => { loadReady() }, [loadReady])
+  useEffect(() => { loadPeriodOrders() }, [loadPeriodOrders])
   useEffect(() => { listEmployees().then(setEmployees).catch(() => {}) }, [])
 
   return (
@@ -108,7 +120,7 @@ export default function ReportsManager() {
         <EmpleadosTab
           employees={employees} employeeId={employeeId} setEmployeeId={setEmployeeId}
           empFilter={empFilter} setEmpFilter={setEmpFilter}
-          orders={orders} onSelect={setSelected}
+          orders={orders} cuts={cuts} onSelect={setSelected}
         />
       )}
 
@@ -262,13 +274,14 @@ function GastosTab({ report }: { report: Report }) {
 }
 
 // ── Empleados (con desglose por tiempo) ────────────────
-function EmpleadosTab({ employees, employeeId, setEmployeeId, empFilter, setEmpFilter, orders, onSelect }: {
+function EmpleadosTab({ employees, employeeId, setEmployeeId, empFilter, setEmpFilter, orders, cuts, onSelect }: {
   employees: Employee[]
   employeeId: number | 0
   setEmployeeId: (v: number | 0) => void
   empFilter: EmployeeFilter
   setEmpFilter: (v: EmployeeFilter) => void
   orders: OrderWithItems[]
+  cuts: CashCut[]
   onSelect: (o: OrderWithItems) => void
 }) {
   // desglose por día (horario mexicano) de las órdenes filtradas
@@ -307,9 +320,13 @@ function EmpleadosTab({ employees, employeeId, setEmployeeId, empFilter, setEmpF
         )}
       </div>
 
+      {employeeId === 0
+        ? <CutsByEmployee cuts={cuts} onPick={id => { setEmployeeId(id); setEmpFilter('delivered') }} />
+        : <EmployeeCut cut={cuts.find(c => c.employeeId === employeeId)} />}
+
       <div className="grid grid-cols-2 gap-3">
         <Kpi label="Órdenes" value={String(orders.length)} color="#fff" />
-        <Kpi label="Ventas (entregadas)" value={money(totalVentas)} color="var(--color-role-admin)" />
+        <Kpi label="Ventas (todas las formas)" value={money(totalVentas)} color="#fff" />
       </div>
 
       {/* Desglose por tiempo */}
@@ -336,6 +353,70 @@ function EmpleadosTab({ employees, employeeId, setEmployeeId, empFilter, setEmpF
         {orders.length === 0 ? <Empty /> : <OrdersList orders={orders} onSelect={onSelect} />}
       </Section>
     </div>
+  )
+}
+
+// ── Corte de caja ──────────────────────────────────────
+const CUT_METHODS: CutMethod[] = ['efectivo', 'tarjeta', 'transferencia', 'sin_registrar']
+
+// Corte de un empleado: lo que cobró, separado por forma de pago.
+function EmployeeCut({ cut }: { cut?: CashCut }) {
+  return (
+    <Section title="Corte de caja · lo que cobró">
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <Kpi label="Efectivo a entregar" value={money(cut?.amounts.efectivo ?? 0)} color="var(--color-role-admin)" />
+          <Kpi label="Total cobrado" value={money(cut?.total ?? 0)} color="#fff" />
+        </div>
+        <div className="overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-surface)]">
+          {CUT_METHODS.filter(m => m !== 'sin_registrar' || (cut?.counts.sin_registrar ?? 0) > 0).map((m, i) => (
+            <div key={m} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? 'border-t border-[var(--color-border)]' : ''}`}>
+              <span className="h-3 w-3 rounded-full" style={{ background: PAY_COLOR[m] }} />
+              <span className="flex-1 text-[15px] text-white">
+                {payLabel(m)}
+                {m === 'efectivo' && <span className="text-[var(--color-text-secondary)]"> · se entrega</span>}
+                {m === 'sin_registrar' && <span className="text-[#fbbf24]"> · revisar</span>}
+              </span>
+              <span className="tabular text-[13px] text-[var(--color-text-secondary)]">{cut?.counts[m] ?? 0} órd</span>
+              <span className="tabular text-[15px] font-medium text-white">{money(cut?.amounts[m] ?? 0)}</span>
+            </div>
+          ))}
+        </div>
+        <p className="text-[13px] text-[var(--color-text-secondary)]">
+          Solo el efectivo se le pide al empleado. Si una orden quedó con la forma de pago equivocada, ábrela en la lista de abajo y corrígela; el corte se actualiza solo.
+        </p>
+      </div>
+    </Section>
+  )
+}
+
+// Corte de todos: una fila por empleado que cobró en el periodo.
+function CutsByEmployee({ cuts, onPick }: { cuts: CashCut[]; onPick: (employeeId: number) => void }) {
+  return (
+    <Section title="Corte de caja por empleado">
+      {cuts.length === 0 ? <Empty /> : (
+        <div className="overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-surface)]">
+          {cuts.map((c, i) => (
+            <button key={c.employeeId ?? 'none'} disabled={c.employeeId == null}
+                    onClick={() => c.employeeId != null && onPick(c.employeeId)}
+                    className={`flex w-full items-center gap-3 px-4 py-3 text-left enabled:hover:bg-[var(--color-surface-2)] ${i > 0 ? 'border-t border-[var(--color-border)]' : ''}`}>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[15px] font-medium text-white">{c.name}</p>
+                <p className="tabular mt-0.5 truncate text-[13px] text-[var(--color-text-secondary)]">
+                  Tarjeta {money(c.amounts.tarjeta)} · Transf. {money(c.amounts.transferencia)}
+                  {c.counts.sin_registrar > 0 && <span className="text-[#fbbf24]"> · Sin registrar {money(c.amounts.sin_registrar)}</span>}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[12px] uppercase tracking-wide text-[var(--color-text-secondary)]">Efectivo</p>
+                <p className="tabular text-[17px] font-bold" style={{ color: 'var(--color-role-admin)' }}>{money(c.amounts.efectivo)}</p>
+              </div>
+              {c.employeeId != null && <ChevronRight size={18} style={{ color: 'var(--color-text-tertiary)' }} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </Section>
   )
 }
 

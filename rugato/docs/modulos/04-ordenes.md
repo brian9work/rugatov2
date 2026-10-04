@@ -124,7 +124,9 @@ Según [DISENO.md](../DISENO.md), por rol:
 - **Cocina** — tablero en tiempo real de líneas de su estación; marcar
   preparando / listo; campana en orden nueva.
 - **Admin** — todas las órdenes, historial, cancelar/revertir, entregar
-  (captura pago).
+  (captura pago). La forma de pago **no tiene valor por defecto**: el botón de
+  cobrar se habilita hasta elegirla (antes venía "Efectivo" y los pagos con
+  tarjeta se registraban mal y se sumaban al corte del empleado).
 
 Componentes a reutilizar: `Sheet`, `Button`, `Segmented`, `Badge` (nuevo),
 `Stepper` (nuevo). El detalle de armado de producto es el más complejo (espejo

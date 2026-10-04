@@ -28,7 +28,9 @@ export default function OrderDetail({ order, actor, canDeliver, canEdit = true, 
   onChanged: () => void
 }) {
   const [busy, setBusy] = useState(false)
-  const [payment, setPayment] = useState<PaymentMethod>('efectivo')
+  // Sin forma de pago por defecto: se elige explícitamente al cobrar (evita
+  // registrar como efectivo un pago con tarjeta y que se sume al corte).
+  const [payment, setPayment] = useState<PaymentMethod | null>(null)
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
@@ -118,9 +120,13 @@ export default function OrderDetail({ order, actor, canDeliver, canEdit = true, 
                     {collectors.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </label>
-                <Button block disabled={busy || !allReady}
-                        onClick={() => run(() => ordersApi.deliver(order.id, collectorId, payment))}>
-                  {allReady ? `Entregar y cobrar $${Number(order.total).toFixed(0)}` : 'Faltan productos por estar listos'}
+                <Button block disabled={busy || !allReady || !payment}
+                        onClick={() => payment && run(() => ordersApi.deliver(order.id, collectorId, payment))}>
+                  {!allReady
+                    ? 'Faltan productos por estar listos'
+                    : !payment
+                      ? 'Elige la forma de pago'
+                      : `Entregar y cobrar $${Number(order.total).toFixed(0)} · ${PAYMENT_LABELS[payment]}`}
                 </Button>
               </div>
             )}
@@ -275,8 +281,8 @@ export default function OrderDetail({ order, actor, canDeliver, canEdit = true, 
               <span className="text-[13px] font-medium uppercase tracking-wide text-[var(--color-text-secondary)]">Forma de pago</span>
               {canEditPayment ? (
                 <Segmented<PaymentMethod>
-                  value={(order.payment ?? 'efectivo') as PaymentMethod}
-                  onChange={p => run(() => ordersApi.setPayment(order.id, p, actor))}
+                  value={order.payment}
+                  onChange={p => { if (p !== order.payment) run(() => ordersApi.setPayment(order.id, p, actor)) }}
                   options={(Object.keys(PAYMENT_LABELS) as PaymentMethod[]).map(p => ({ value: p, label: PAYMENT_LABELS[p] }))}
                 />
               ) : (

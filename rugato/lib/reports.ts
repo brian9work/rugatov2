@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { mexicoTodayStartISO } from '@/lib/time'
-import { type OrderWithItems, type OrderStatus } from '@/lib/orders'
+import { type OrderWithItems, type OrderStatus, type PaymentMethod } from '@/lib/orders'
 
 export interface ReportTotals {
   ventas: number
@@ -89,4 +89,63 @@ export async function ordersInRange(
   const { data, error } = await q
   if (error) throw new Error(error.message)
   return (data ?? []) as OrderWithItems[]
+}
+
+// ── Corte de caja por empleado ─────────────────────────
+// El corte es de quien COBRÓ (delivered_by), por fecha de cobro. Solo el
+// efectivo se le pide al empleado; tarjeta y transferencia van al banco.
+
+export type CutMethod = PaymentMethod | 'sin_registrar'
+
+export interface CollectedOrder {
+  id: number
+  folio: number
+  total: number
+  payment: PaymentMethod | null
+  delivered_by: number | null
+  delivered_by_name: string | null
+}
+
+export interface CashCut {
+  employeeId: number | null
+  name: string
+  amounts: Record<CutMethod, number>
+  counts: Record<CutMethod, number>
+  total: number
+  ordenes: number
+}
+
+/** Órdenes entregadas (cobradas) en el periodo, por fecha de cobro. */
+export async function collectedInRange(range: RangeKey, custom?: CustomRange | null): Promise<CollectedOrder[]> {
+  const { start, end } = rangeFor(range, custom)
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id, folio, total, payment, delivered_by, delivered_by_name')
+    .eq('status', 'entregado')
+    .gte('delivered_at', start)
+    .lt('delivered_at', end)
+  if (error) throw new Error(error.message)
+  return (data ?? []).map(o => ({ ...o, total: Number(o.total) }))
+}
+
+/** Agrupa lo cobrado por empleado y forma de pago. Ordenado por efectivo a entregar. */
+export function cashCuts(orders: CollectedOrder[], employees: Employee[] = []): CashCut[] {
+  const names = new Map(employees.map(e => [e.id, e.name]))
+  const zero = (): Record<CutMethod, number> => ({ efectivo: 0, tarjeta: 0, transferencia: 0, sin_registrar: 0 })
+  const map = new Map<number | null, CashCut>()
+  for (const o of orders) {
+    const id = o.delivered_by
+    const cut = map.get(id) ?? {
+      employeeId: id,
+      name: o.delivered_by_name ?? (id != null ? names.get(id) : undefined) ?? 'Sin asignar',
+      amounts: zero(), counts: zero(), total: 0, ordenes: 0,
+    }
+    const method: CutMethod = o.payment ?? 'sin_registrar'
+    cut.amounts[method] += o.total
+    cut.counts[method] += 1
+    cut.total += o.total
+    cut.ordenes += 1
+    map.set(id, cut)
+  }
+  return [...map.values()].sort((a, b) => b.amounts.efectivo - a.amounts.efectivo)
 }

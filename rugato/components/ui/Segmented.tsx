@@ -2,7 +2,7 @@
 
 interface Props<T extends string> {
   options: { value: T; label: string }[]
-  value: T
+  value: T | null // null = ninguna opción elegida todavía
   onChange: (v: T) => void
 }
 
