@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { X } from 'lucide-react'
 import Sheet from '@/components/ui/Sheet'
 import Button from '@/components/ui/Button'
 import Segmented from '@/components/ui/Segmented'
@@ -8,35 +9,46 @@ import Stepper from '@/components/ui/Stepper'
 import {
   type ProductFull, type ProductSize, SIZE_LABELS, sizesFor,
 } from '@/lib/menu'
-import { type CartLine, unitPriceOf, lineTotal } from '@/lib/orders'
+import {
+  type CartLine, type CustomExtra, CUSTOM_EXTRA_AMOUNTS, unitPriceOf, lineTotal, customExtraText,
+} from '@/lib/orders'
 
 let keySeq = 0
 
 interface Props {
   product: ProductFull
+  initial?: CartLine // al editar una línea del carrito: se reemplaza (mismo key)
   onClose: () => void
   onAdd: (line: CartLine) => void
 }
 
-export default function ProductConfig({ product, onClose, onAdd }: Props) {
+export default function ProductConfig({ product, initial, onClose, onAdd }: Props) {
   const mode = product.category?.pricing_mode ?? 'unico'
   const sizes = sizesFor(mode)
 
   const freeform = product.category?.is_freeform ?? false
 
-  const [size, setSize] = useState<ProductSize>(sizes[0])
-  const [quantity, setQuantity] = useState(1)
-  const [removed, setRemoved] = useState<number[]>([])
-  const [extraIds, setExtraIds] = useState<number[]>([])
-  const [optionIds, setOptionIds] = useState<number[]>([])
-  const [notes, setNotes] = useState('')
-  const [price, setPrice] = useState('') // solo "al gusto"
+  const [size, setSize] = useState<ProductSize>(initial?.size ?? sizes[0])
+  const [quantity, setQuantity] = useState(initial?.quantity ?? 1)
+  const [removed, setRemoved] = useState<number[]>(initial?.removedIngredientIds ?? [])
+  const [extraIds, setExtraIds] = useState<number[]>(initial?.extraIds ?? [])
+  const [optionIds, setOptionIds] = useState<number[]>(initial?.optionIds ?? [])
+  const [notes, setNotes] = useState(initial?.notes ?? '')
+  const [price, setPrice] = useState(initial?.price ? String(initial.price) : '') // solo "al gusto"
+  const [custom, setCustom] = useState<CustomExtra[]>(initial?.customExtras ?? [])
+  const [customLabel, setCustomLabel] = useState('')
 
   const draft: CartLine = useMemo(() => ({
     key: '', product, size, quantity,
-    removedIngredientIds: removed, extraIds, optionIds, notes, extraCharge: 0,
+    removedIngredientIds: removed, extraIds, optionIds, notes, customExtras: custom,
     price: Number(price) || 0,
-  }), [product, size, quantity, removed, extraIds, optionIds, notes, price])
+  }), [product, size, quantity, removed, extraIds, optionIds, notes, custom, price])
+
+  // Un toque al monto agrega el extra con lo escrito en "¿De qué?".
+  function addCustom(amount: number) {
+    setCustom(c => [...c, { label: customLabel.trim(), amount }])
+    setCustomLabel('')
+  }
 
   function toggle(list: number[], set: (v: number[]) => void, id: number) {
     set(list.includes(id) ? list.filter(x => x !== id) : [...list, id])
@@ -54,7 +66,7 @@ export default function ProductConfig({ product, onClose, onAdd }: Props) {
   }
 
   function add() {
-    onAdd({ ...draft, key: `l${++keySeq}` })
+    onAdd({ ...draft, key: initial?.key ?? `l${++keySeq}` })
     onClose()
   }
 
@@ -65,7 +77,7 @@ export default function ProductConfig({ product, onClose, onAdd }: Props) {
       title={product.name}
       footer={
         <Button block onClick={add}>
-          Agregar · ${lineTotal(draft).toFixed(0)}
+          {initial ? 'Guardar cambios' : 'Agregar'} · ${lineTotal(draft).toFixed(0)}
         </Button>
       }
     >
@@ -115,6 +127,29 @@ export default function ProductConfig({ product, onClose, onAdd }: Props) {
             </div>
           </Section>
         )}
+
+        {/* Extra que no está en la lista: monto rápido */}
+        <Section label="Extra fuera de la lista">
+          <div className="flex flex-col gap-2">
+            {custom.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {custom.map((c, i) => (
+                  <Chip key={i} active onClick={() => setCustom(custom.filter((_, x) => x !== i))}>
+                    {customExtraText(c)} <X size={14} />
+                  </Chip>
+                ))}
+              </div>
+            )}
+            <input value={customLabel} onChange={e => setCustomLabel(e.target.value)}
+                   placeholder="¿De qué? Ej. plátano, nuez"
+                   className="w-full rounded-[var(--radius-md)] bg-[var(--color-bg-primary)] px-3 py-2.5 text-[17px] text-white placeholder:text-[var(--color-text-tertiary)] outline-none focus:ring-2 focus:ring-[var(--color-accent)]" />
+            <div className="flex flex-wrap gap-2">
+              {CUSTOM_EXTRA_AMOUNTS.map(a => (
+                <Chip key={a} active={false} onClick={() => addCustom(a)}>+${a}</Chip>
+              ))}
+            </div>
+          </div>
+        </Section>
 
         {/* Grupos de opciones (armables) */}
         {product.option_groups.map(g => {
@@ -176,7 +211,7 @@ function Chip({ active, danger, onClick, children }: {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-full px-3 py-2 text-[15px] font-medium transition-colors"
+      className="inline-flex items-center gap-1 rounded-full px-3 py-2 text-[15px] font-medium transition-colors"
       style={
         active
           ? danger

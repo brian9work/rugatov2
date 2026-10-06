@@ -1,14 +1,15 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Plus, ClipboardList, RotateCw } from 'lucide-react'
+import { Plus, ClipboardList, RotateCw, FileClock, Trash2, ChevronRight } from 'lucide-react'
 import Button from '@/components/ui/Button'
 import StatusBadge from '@/components/ui/StatusBadge'
 import NewOrderSheet from '@/components/orders/NewOrderSheet'
 import OrderDetail from '@/components/orders/OrderDetail'
 import { supabase } from '@/lib/supabase'
 import { useUser } from '@/lib/UserContext'
-import { type OrderWithItems, SERVICE_LABELS } from '@/lib/orders'
+import { type OrderWithItems, SERVICE_LABELS, cartTotal } from '@/lib/orders'
+import { type OrderDraft, useDrafts, deleteDraft } from '@/lib/drafts'
 import { STATUS_LABELS } from '@/lib/roles'
 import { mexicoTodayStartISO } from '@/lib/time'
 
@@ -20,6 +21,8 @@ export default function OrdersBoard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [newOpen, setNewOpen] = useState(false)
+  const [draft, setDraft] = useState<OrderDraft | null>(null) // borrador que se retoma
+  const drafts = useDrafts()
   const [selected, setSelected] = useState<OrderWithItems | null>(null)
   const [stations, setStations] = useState<{ id: number; role_hint: string | null }[]>([])
   const knownIds = useRef<Set<number>>(new Set())
@@ -123,6 +126,11 @@ export default function OrdersBoard() {
     return () => { supabase.removeChannel(channel) }
   }, [load, bell])
 
+  function openNew(d: OrderDraft | null = null) {
+    setDraft(d)
+    setNewOpen(true)
+  }
+
   return (
     <div className="mx-auto w-full max-w-[720px]">
       <div className="mb-4 flex items-center justify-between">
@@ -132,11 +140,13 @@ export default function OrdersBoard() {
                   className="flex h-11 w-11 items-center justify-center rounded-[var(--radius-md)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-2)] hover:text-white">
             <RotateCw size={18} />
           </button>
-          {canManage && <Button onClick={() => setNewOpen(true)}><Plus size={20} /> Nueva</Button>}
+          {canManage && <Button onClick={() => openNew()}><Plus size={20} /> Nueva</Button>}
         </div>
       </div>
 
       {error && <div className="mb-4 rounded-[var(--radius-md)] bg-[#fb2424]/15 px-4 py-3 text-[15px] text-[#fb2424]">{error}</div>}
+
+      {canManage && drafts.length > 0 && <DraftsList drafts={drafts} onOpen={openNew} />}
 
       {loading ? (
         <p className="text-[15px] text-[var(--color-text-secondary)]">Cargando…</p>
@@ -145,7 +155,7 @@ export default function OrdersBoard() {
           <ClipboardList size={48} className="text-[var(--color-text-tertiary)]" />
           <p className="text-[17px] font-semibold text-white">Sin órdenes pendientes</p>
           <p className="text-[15px] text-[var(--color-text-secondary)]">Las órdenes nuevas aparecerán aquí en tiempo real.</p>
-          {canManage && <Button onClick={() => setNewOpen(true)}><Plus size={20} /> Nueva orden</Button>}
+          {canManage && <Button onClick={() => openNew()}><Plus size={20} /> Nueva orden</Button>}
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
@@ -179,7 +189,9 @@ export default function OrdersBoard() {
         </div>
       )}
 
-      <NewOrderSheet open={newOpen} onClose={() => setNewOpen(false)} onCreated={load} />
+      {newOpen && (
+        <NewOrderSheet open draft={draft} onClose={() => { setNewOpen(false); setDraft(null) }} onCreated={load} />
+      )}
 
       {selected && (
         <OrderDetail
@@ -193,6 +205,47 @@ export default function OrdersBoard() {
       )}
     </div>
   )
+}
+
+// Borradores guardados en este dispositivo (no están en la base).
+function DraftsList({ drafts, onOpen }: { drafts: OrderDraft[]; onOpen: (d: OrderDraft) => void }) {
+  return (
+    <section className="mb-5">
+      <h2 className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
+        <FileClock size={14} /> Borradores en este dispositivo ({drafts.length})
+      </h2>
+      <div className="overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-surface)]">
+        {drafts.map((d, i) => (
+          <div key={d.id} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? 'border-t border-[var(--color-border)]' : ''}`}>
+            <button onClick={() => onOpen(d)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[15px] font-semibold text-white">{draftTitle(d)}</p>
+                <p className="truncate text-[13px] text-[var(--color-text-secondary)]">
+                  {d.lines.map(l => `${l.quantity}× ${l.product.name}`).join(', ')}
+                </p>
+                <p className="text-[12px] text-[var(--color-text-tertiary)]">
+                  {timeAgo(d.savedAt)}{d.savedBy && ` · ${d.savedBy}`}
+                </p>
+              </div>
+              <span className="tabular text-[15px] font-semibold" style={{ color: 'var(--color-accent)' }}>
+                ${cartTotal(d.lines).toFixed(0)}
+              </span>
+              <ChevronRight size={18} style={{ color: 'var(--color-text-tertiary)' }} />
+            </button>
+            <button aria-label="Borrar borrador" className="text-[#fb2424]"
+                    onClick={() => { if (confirm('¿Borrar este borrador?')) deleteDraft(d.id) }}>
+              <Trash2 size={18} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function draftTitle(d: OrderDraft): string {
+  const parts = [d.table && `Mesa ${d.table}`, d.customer.trim()].filter(Boolean)
+  return parts.length ? parts.join(' · ') : `${SERVICE_LABELS[d.service]} · sin nombre`
 }
 
 function timeAgo(iso: string): string {

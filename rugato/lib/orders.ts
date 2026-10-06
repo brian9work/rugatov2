@@ -30,6 +30,15 @@ export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
 }
 
 // ── Carrito (estado en cliente antes de enviar) ────────
+
+/** Extra que no está en el menú (ej. "plátano"), con monto rápido. Por unidad. */
+export interface CustomExtra { label: string; amount: number }
+export const CUSTOM_EXTRA_AMOUNTS = [5, 10, 15, 20] as const
+
+export function customExtraText(e: CustomExtra): string {
+  return `Extra${e.label.trim() ? ` ${e.label.trim()}` : ''} +$${e.amount}`
+}
+
 export interface CartLine {
   key: string
   product: ProductFull
@@ -39,7 +48,7 @@ export interface CartLine {
   extraIds: number[]
   optionIds: number[]
   notes: string
-  extraCharge: number
+  customExtras: CustomExtra[]
   price: number // precio unitario escrito a mano (solo productos "al gusto")
 }
 
@@ -57,7 +66,8 @@ export function lineTotal(line: CartLine): number {
     .flatMap(g => g.items)
     .filter(o => line.optionIds.includes(o.id))
     .reduce((a, o) => a + Number(o.extra_price), 0)
-  return line.quantity * (base + extras + options) + (line.extraCharge || 0)
+  const custom = line.customExtras.reduce((a, e) => a + e.amount, 0)
+  return line.quantity * (base + extras + options + custom)
 }
 
 export function cartTotal(lines: CartLine[]): number {
@@ -86,13 +96,17 @@ export interface CreateOrderPayload {
 
 /** Una línea de carrito → item para add_order_item / create_order. */
 export function lineToItem(l: CartLine) {
+  // Los extras fuera de la lista viajan como extra_charge (monto de toda la
+  // línea) y su descripción en las notas, para que cocina los vea.
+  const custom = l.customExtras.reduce((a, e) => a + e.amount, 0)
+  const notes = [l.notes.trim(), ...l.customExtras.map(customExtraText)].filter(Boolean).join(' · ')
   return {
     product_id: l.product.id,
     size: l.size,
     quantity: l.quantity,
-    extra_charge: l.extraCharge || 0,
+    extra_charge: custom * l.quantity,
     price: l.price || 0, // el servidor lo usa solo para productos "al gusto"
-    notes: l.notes.trim() || null,
+    notes: notes || null,
     removed_ingredients: l.removedIngredientIds.map(String),
     extras: l.extraIds.map(String),
     options: l.optionIds.map(String),
